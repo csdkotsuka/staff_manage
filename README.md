@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 現場NOW (CraftSync) - リアルタイム現場・位置・ステータス共有アプリ (PWA)
 
-## Getting Started
+建設会社（社員5名）向けの、現場直行直帰や急な呼び出し対応をスムーズにするモバイルファーストWebアプリケーション（PWA対応）のプロトタイプです。
 
-First, run the development server:
+---
+
+## 🌟 主な機能
+
+1. **今日の現場マップ & 社員ステータスボード（メイン画面）**
+   - **現場マップ**: Leaflet (OpenStreetMap) によるインタラクティブ地図。現場の位置（ビルアイコン）と社員5名の現在地（ステータスカラー付きアバター）をピン表示。
+   - **社員5名のステータスカード**:
+     - 名前、職種、担当現場、最終更新時刻、メモ。
+     - **ワンタップ切り替えボタン**: 「移動中」「作業中」「完了」「移動可能（急募対応可）」をワンタップで更新可能。
+   - **リアルタイム同期**: 誰かがステータスを変更すると、他端末（または別タブ）に即座に反映。
+2. **急な呼び出し（レスキュー）シミュレーション機能**
+   - 社長・管理者向け「🚨 急募レスキュー」機能。
+   - トラブル現場（例: 「六本木ビル漏水」「目黒駅前停電」）を選択すると、現在「**移動可能（空き）**」ステータスで、かつ**現場に一番近い社員**を自動計算して最上位に推奨表示。
+   - 推定移動時間（分）と距離（km）を表示し、ワンタップで出動要請を発行（対象社員のステータスが自動的に「現場移動中」に変更されます）。
+3. **AI自然言語問合せ（現場アシスタント）**
+   - 「今日渋谷現場の近くにいる人は？」「今空いてる人は？」と入力すると、現在の全社員のステータスと現場位置を分析して即答します。
+4. **PWA & モバイルファーストUI**
+   - 屋外の日差しや手袋操作でも見やすい、高コントラストなダークインダストリアルデザイン。
+   - スマートフォンのホーム画面に追加してネイティブアプリ感覚で利用可能。
+
+---
+
+## 🚀 すぐに動かす（ローカルデモモード）
+
+本アプリは、**Supabaseの環境変数がなくてもブラウザのタブ間通信（BroadcastChannel）により、完全なリアルタイム同期デモが即座に動作**します。
 
 ```bash
+# 1. 開発サーバー起動
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# 2. ブラウザでアクセス
+# http://localhost:3000 を2つのブラウザウィンドウ（または別タブ）で開きます。
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> **デモの試し方**:
+> - タブ1で画面上部の「自端末: 佐藤 健一 (社長)」を「田中 裕介」に切り替えます。
+> - 田中さんのカードで「作業中」から「移動可能」ボタンをタップします。
+> - タブ2の画面を見ると、**リロード不要で即座に田中さんのステータスが「移動可能」に変わり、地図上のピンの色も変わる**ことが確認できます！
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🗄️ Supabaseとの本番連携手順
 
-## Learn More
+実機のスマホや別PC間で同期させたい場合は、Supabaseと連携します。
 
-To learn more about Next.js, take a look at the following resources:
+### 1. Supabaseプロジェクトの作成
+1. [Supabase](https://supabase.com) にログインし、新規プロジェクトを作成します。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 2. DBスキーマの適用
+1. Supabaseダッシュボードの「SQL Editor」を開きます。
+2. 本リポジトリの `supabase/schema.sql` の内容をコピーして貼り付け、「Run」を実行します。
+   - `staffs`（社員テーブル）、`sites`（現場テーブル）、`rescue_requests`（緊急出動テーブル）が作成され、初期サンプルデータ5名分が投入されます。
+   - Supabase Realtime が有効化されます。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 3. 環境変数の設定
+プロジェクトルートに `.env.local` を作成し、Supabaseの接続情報を入力します：
 
-## Deploy on Vercel
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxxxxxxxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 4. アプリ再起動
+```bash
+npm run dev
+```
+画面上部のインジケータが「**Supabase Live**」になり、実機スマートフォン等からリアルタイムに同期します。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 🌐 Vercelへのデプロイ
+
+1. GitHubリポジトリにプッシュします。
+2. [Vercel](https://vercel.com) でリポジトリをインポートします。
+3. Environment Variables に `NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` を登録します。
+4. 「Deploy」をクリックすれば、数分で全世界からアクセス可能なPWAアプリが公開されます。

@@ -1,0 +1,16 @@
+{
+  "name": "現場NOW - リアルタイム現場・ステータス共有",
+  "short_name": "現場NOW",
+  "description": "建設会社向けリアルタイム位置・現場・ステータス共有Webアプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#f59e0b",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
