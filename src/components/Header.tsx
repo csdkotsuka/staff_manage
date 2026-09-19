@@ -11,6 +11,7 @@ import {
   User,
   Map,
   LogIn,
+  BookOpen,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -182,6 +183,18 @@ export const Header: React.FC<HeaderProps> = ({
             <Siren className="w-4 h-4 animate-bounce" />
             <span className="hidden sm:inline">急募レスキュー</span>
           </button>
+
+          {/* 取扱説明書 (マニュアル) リンク */}
+          <a
+            href="/guide"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/40 text-amber-300 rounded-lg text-xs font-bold transition shadow-sm"
+            title="取扱説明書（マニュアル）を開く"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden lg:inline">説明書</span>
+          </a>
 
           {/* リセット */}
           <button

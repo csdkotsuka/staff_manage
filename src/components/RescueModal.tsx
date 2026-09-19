@@ -24,30 +24,30 @@ interface RescueModalProps {
   onPreviewLocation: (coord: { lat: number; lng: number; title: string } | null) => void;
 }
 
-// サンプルの急患・トラブル現場プリセット
+// サンプルの急患・トラブル現場プリセット（愛媛県内）
 const RESCUE_PRESETS = [
   {
-    title: '六本木テナントビル 漏水緊急対応',
-    address: '東京都港区六本木6-10-1',
-    lat: 35.6628,
-    lng: 139.7314,
-    description: '3階テナントで給水管より漏水。至急バルブ遮断と応急補修が必要',
+    title: '松山大街道 テナントビル漏水緊急対応',
+    address: '愛媛県松山市大街道2-1-1',
+    lat: 33.8415,
+    lng: 132.7712,
+    description: '2階飲食テナント厨房で給水管より漏水。至急バルブ遮断と応急配管補修が必要',
     urgency: 'urgent',
   },
   {
-    title: '目黒駅前 マンション停電トラブル',
-    address: '東京都品川区上大崎2-16-9',
-    lat: 35.6339,
-    lng: 139.7158,
-    description: '主ブレーカー作動で共用部が停電。絶縁測定と復旧対応要請',
+    title: '松山空港通り 店舗停電トラブル',
+    address: '愛媛県松山市空港通3-8-1',
+    lat: 33.8290,
+    lng: 132.7230,
+    description: '主ブレーカー作動で店舗内が全停電。絶縁測定と回路復旧要請',
     urgency: 'urgent',
   },
   {
-    title: '恵比寿 レストラン換気ダクト脱落',
-    address: '東京都渋谷区恵比寿南1-5-5',
-    lat: 35.6467,
-    lng: 139.7100,
-    description: '厨房ダクトの吊りボルト破損。営業前(16時まで)に補強が必要',
+    title: '伊予市 物流倉庫換気ファン脱落危険',
+    address: '愛媛県伊予市米湊800',
+    lat: 33.7550,
+    lng: 132.7020,
+    description: '天井換気排気設備の吊り金具破損。夕方までに高所作業車での緊急補強が必要',
     urgency: 'high',
   },
 ];

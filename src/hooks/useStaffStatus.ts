@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Staff, StaffStatus } from '@/lib/types';
 import { INITIAL_STAFFS } from '@/lib/mockData';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
-import { collection, onSnapshot, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 
 const STORAGE_KEY = 'craft_staff_status_cache_v1';
 const BROADCAST_CHANNEL_NAME = 'craft_staff_sync_channel';
@@ -176,7 +176,85 @@ export function useStaffStatus() {
     []
   );
 
-  // 3. 全体リセット（デモ検証・Firestore初期化用）
+  // 3. 社員プロフィール・役職・権限情報の編集
+  const updateStaffInfo = useCallback(
+    async (staffId: string, updatedFields: Partial<Staff>) => {
+      const now = new Date().toISOString();
+      const payload = { ...updatedFields, updated_at: now };
+
+      setStaffs((prev) => {
+        const next = prev.map((s) => (s.id === staffId ? { ...s, ...payload } : s));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        }
+        const updated = next.find((s) => s.id === staffId);
+        if (updated && broadcastChannelRef.current) {
+          broadcastChannelRef.current.postMessage({
+            type: 'STAFF_UPDATED',
+            updatedStaff: updated,
+            message: `${updated.name}さんの社員情報が更新されました`,
+          });
+        }
+        return next;
+      });
+
+      if (isFirebaseConfigured && db) {
+        try {
+          await updateDoc(doc(db, 'staffs', staffId), payload as Record<string, unknown>);
+        } catch (e) {
+          console.error('Failed to update staff info in Firestore', e);
+        }
+      }
+    },
+    []
+  );
+
+  // 4. 新規社員の追加
+  const addStaff = useCallback(async (newStaff: Omit<Staff, 'id'>) => {
+    const id = `staff-${Date.now()}`;
+    const staffWithId: Staff = {
+      ...newStaff,
+      id,
+      updated_at: new Date().toISOString(),
+    };
+
+    setStaffs((prev) => {
+      const next = [...prev, staffWithId];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      }
+      return next;
+    });
+
+    if (isFirebaseConfigured && db) {
+      try {
+        await setDoc(doc(db, 'staffs', id), staffWithId);
+      } catch (e) {
+        console.error('Failed to add staff in Firestore', e);
+      }
+    }
+  }, []);
+
+  // 5. 社員の削除
+  const deleteStaff = useCallback(async (staffId: string) => {
+    setStaffs((prev) => {
+      const next = prev.filter((s) => s.id !== staffId);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      }
+      return next;
+    });
+
+    if (isFirebaseConfigured && db) {
+      try {
+        await deleteDoc(doc(db, 'staffs', staffId));
+      } catch (e) {
+        console.error('Failed to delete staff in Firestore', e);
+      }
+    }
+  }, []);
+
+  // 6. 全体リセット（デモ検証・Firestore初期化用）
   const resetToDefault = useCallback(async () => {
     setStaffs(INITIAL_STAFFS);
     if (typeof window !== 'undefined') {
@@ -186,7 +264,7 @@ export function useStaffStatus() {
       broadcastChannelRef.current.postMessage({
         type: 'STAFF_UPDATED',
         updatedStaff: INITIAL_STAFFS[0],
-        message: 'デモデータを初期化しました',
+        message: 'デモデータを愛媛県仕様に初期化しました',
       });
     }
 
@@ -205,6 +283,9 @@ export function useStaffStatus() {
     currentStaffId,
     setCurrentStaffId,
     updateStatus,
+    updateStaffInfo,
+    addStaff,
+    deleteStaff,
     resetToDefault,
     isLiveConnected,
     isMockMode: !isFirebaseConfigured,

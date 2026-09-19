@@ -12,10 +12,20 @@ import {
   CloudFog,
   Umbrella,
   CalendarDays,
-  ChevronRight,
   MapPin,
   RefreshCw,
+  Navigation,
+  Info,
 } from 'lucide-react';
+
+// 愛媛県内および現場プリセット
+const WEATHER_LOCATIONS = [
+  { id: 'matsuyama', name: '🍊 松山本社（中予）', lat: 33.8392, lng: 132.7656 },
+  { id: 'site_matsuyama', name: '🏗️ 松山市駅前 現場', lat: 33.8358, lng: 132.7621 },
+  { id: 'site_imabari', name: '🌊 今治新都市 現場（東予）', lat: 34.0535, lng: 132.9642 },
+  { id: 'site_niihama', name: '🏭 新居浜プラント 現場（東予）', lat: 33.9748, lng: 133.2755 },
+  { id: 'uwajima', name: '🐟 宇和島・南予エリア', lat: 33.2234, lng: 132.5606 },
+];
 
 // WMO Weather Code 解釈関数
 function parseWmoCode(code: number): { text: string; icon: string } {
@@ -75,13 +85,19 @@ export const WeatherWidget: React.FC = () => {
   const [forecast, setForecast] = useState<WeatherForecastDay[]>(FALLBACK_FORECAST);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [lastFetched, setLastFetched] = useState<string>('たった今');
+  const [selectedLocId, setSelectedLocId] = useState<string>('matsuyama');
+  const [currentLocName, setCurrentLocName] = useState<string>('松山本社（中予）');
+  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number }>({
+    lat: 33.8392,
+    lng: 132.7656,
+  });
 
-  const fetchWeather = async () => {
+  const fetchWeather = async (lat: number, lng: number, locLabel?: string) => {
     setIsLoading(true);
     try {
-      // 東京周辺（現場エリア）の7日間気象予報（JMA気象庁連携Open-Meteo）
+      // 気象庁(JMA)高解像度数値予報モデル直結のオープン気象データAPI (Open-Meteo)
       const res = await fetch(
-        'https://api.open-meteo.com/v1/forecast?latitude=35.6895&longitude=139.6917&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo'
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo`
       );
       if (!res.ok) throw new Error('Weather API error');
       const data = await res.json();
@@ -117,6 +133,7 @@ export const WeatherWidget: React.FC = () => {
         const now = new Date();
         setLastFetched(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}更新`);
       }
+      if (locLabel) setCurrentLocName(locLabel);
     } catch (e) {
       console.warn('Weather fetch failed, using fallback forecast', e);
     } finally {
@@ -124,31 +141,91 @@ export const WeatherWidget: React.FC = () => {
     }
   };
 
+  // 現場切り替え
+  const handleLocationChange = (locId: string) => {
+    setSelectedLocId(locId);
+    const loc = WEATHER_LOCATIONS.find((l) => l.id === locId);
+    if (loc) {
+      setCurrentCoords({ lat: loc.lat, lng: loc.lng });
+      fetchWeather(loc.lat, loc.lng, loc.name);
+    }
+  };
+
+  // GPS現在地から天気を取得
+  const handleGetGpsWeather = () => {
+    if (!navigator.geolocation) {
+      alert('お使いの端末・ブラウザはGPS位置情報に対応していません');
+      return;
+    }
+    setIsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setSelectedLocId('gps');
+        setCurrentCoords({ lat, lng });
+        fetchWeather(lat, lng, '📍 現在地(GPS連動)');
+      },
+      (err) => {
+        setIsLoading(false);
+        alert('現在地が取得できませんでした（位置情報の許可をご確認ください）');
+      },
+      { timeout: 8000 }
+    );
+  };
+
   useEffect(() => {
-    fetchWeather();
+    fetchWeather(currentCoords.lat, currentCoords.lng);
   }, []);
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 shadow-lg">
-      <div className="flex items-center justify-between mb-2.5 px-1">
+    <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 shadow-lg space-y-2.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
         <div className="flex items-center gap-2">
           <CalendarDays className="w-4 h-4 text-amber-400" />
           <h3 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-            現場エリア 週間天気予報
-            <span className="text-[10px] text-slate-400 font-normal flex items-center gap-0.5">
-              <MapPin className="w-2.5 h-2.5" /> 東京・首都圏現場
-            </span>
+            現場週間天気予報
           </h3>
+          <span className="text-[10px] text-amber-300/90 font-bold bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded">
+            {currentLocName}
+          </span>
         </div>
+
+        {/* 現場切り替え・GPS・更新ボタン */}
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-slate-500">{lastFetched}</span>
+          {/* 現場セレクト */}
+          <select
+            value={selectedLocId}
+            onChange={(e) => handleLocationChange(e.target.value)}
+            className="bg-slate-950 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-amber-500"
+          >
+            {WEATHER_LOCATIONS.map((loc) => (
+              <option key={loc.id} value={loc.id}>
+                {loc.name}
+              </option>
+            ))}
+            {selectedLocId === 'gps' && <option value="gps">📍 現在地 (GPS)</option>}
+          </select>
+
+          {/* GPSボタン */}
           <button
-            onClick={fetchWeather}
+            onClick={handleGetGpsWeather}
+            disabled={isLoading}
+            className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-sky-400 border border-sky-500/30 px-2 py-1 rounded-lg text-xs font-bold transition active:scale-95 shadow"
+            title="端末のGPS現在地の天気を取得"
+          >
+            <Navigation className="w-3 h-3" />
+            <span className="hidden sm:inline">GPS</span>
+          </button>
+
+          {/* リロードボタン */}
+          <button
+            onClick={() => fetchWeather(currentCoords.lat, currentCoords.lng)}
             disabled={isLoading}
             className="text-slate-400 hover:text-slate-200 p-1 rounded hover:bg-slate-800 transition"
             title="天気を再取得"
           >
-            <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin text-amber-400' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-amber-400' : ''}`} />
           </button>
         </div>
       </div>
@@ -222,6 +299,15 @@ export const WeatherWidget: React.FC = () => {
             </div>
           );
         })}
+      </div>
+
+      {/* 気象庁データ出典の注記 */}
+      <div className="flex items-center justify-between text-[10px] text-slate-500 px-1 pt-0.5 border-t border-slate-800/50">
+        <span className="flex items-center gap-1">
+          <Info className="w-2.5 h-2.5 text-slate-400" />
+          気象庁(JMA)高解像度数値予報直結 Open-Meteo API自動取得
+        </span>
+        <span>{lastFetched}</span>
       </div>
     </div>
   );

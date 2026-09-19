@@ -25,14 +25,14 @@ interface SiteManagementModalProps {
   onDeleteSite: (id: string) => Promise<void>;
 }
 
-// 主要エリアの代表座標プリセット
+// 主要エリアの代表座標プリセット（愛媛県内）
 const AREA_PRESETS = [
-  { label: '渋谷エリア', lat: 35.6580, lng: 139.7016 },
-  { label: '新宿エリア', lat: 35.6885, lng: 139.7005 },
-  { label: '品川エリア', lat: 35.6284, lng: 139.7387 },
-  { label: '六本木エリア', lat: 35.6628, lng: 139.7314 },
-  { label: '池袋エリア', lat: 35.7295, lng: 139.7109 },
-  { label: '東京駅・銀座', lat: 35.6812, lng: 139.7671 },
+  { label: '松山市中心・市駅', lat: 33.8392, lng: 132.7656 },
+  { label: '今治新都市・しまなみ', lat: 34.0535, lng: 132.9642 },
+  { label: '新居浜プラント・臨海', lat: 33.9748, lng: 133.2755 },
+  { label: '西条・産業道路', lat: 33.9189, lng: 133.1818 },
+  { label: '大洲・南予北部', lat: 33.5072, lng: 132.5447 },
+  { label: '宇和島・南予南部', lat: 33.2234, lng: 132.5606 },
 ];
 
 export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
@@ -54,8 +54,8 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
   const [newStartDate, setNewStartDate] = useState('');
   const [newEndDate, setNewEndDate] = useState('');
   const [newNotes, setNewNotes] = useState('');
-  const [newLat, setNewLat] = useState<number>(35.6580);
-  const [newLng, setNewLng] = useState<number>(139.7016);
+  const [newLat, setNewLat] = useState<number>(33.8392);
+  const [newLng, setNewLng] = useState<number>(132.7656);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 編集フォーム状態

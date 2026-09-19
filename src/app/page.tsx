@@ -15,6 +15,7 @@ import { MyPage } from '@/components/MyPage';
 import { DailyReportModal } from '@/components/DailyReportModal';
 import { DailyReportListModal } from '@/components/DailyReportListModal';
 import { SiteManagementModal } from '@/components/SiteManagementModal';
+import { StaffManagementModal } from '@/components/StaffManagementModal';
 import { useDailyReports } from '@/hooks/useDailyReports';
 import {
   Bell,
@@ -28,6 +29,7 @@ import {
   Map,
   FileText,
   Calendar,
+  Users,
 } from 'lucide-react';
 
 export default function Home() {
@@ -37,6 +39,9 @@ export default function Home() {
     currentStaffId,
     setCurrentStaffId,
     updateStatus,
+    updateStaffInfo,
+    addStaff,
+    deleteStaff,
     resetToDefault,
     isLiveConnected,
     isMockMode,
@@ -59,6 +64,7 @@ export default function Home() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isReportListModalOpen, setIsReportListModalOpen] = useState(false);
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
+  const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
 
   // ログイン状態
   const [isLoggedIn, setIsLoggedIn] = useState(true); // 初期状態で操作可能な社員にログイン済み扱い
@@ -158,6 +164,7 @@ export default function Home() {
             onOpenDailyReport={() => setIsReportModalOpen(true)}
             onOpenReportList={() => setIsReportListModalOpen(true)}
             onOpenSiteManagement={() => setIsSiteModalOpen(true)}
+            onOpenStaffManagement={() => setIsStaffModalOpen(true)}
             onLogout={handleLogout}
           />
         )}
@@ -251,7 +258,7 @@ export default function Home() {
                     ※各カードから直接ステータス変更可能
                   </span>
                 </h2>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <button
                     onClick={() => setIsReportListModalOpen(true)}
                     className="text-xs bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold px-3 py-1.5 rounded-lg border border-amber-500/30 flex items-center gap-1.5 transition active:scale-95"
@@ -260,11 +267,18 @@ export default function Home() {
                     日報一覧・PDF
                   </button>
                   <button
+                    onClick={() => setIsStaffModalOpen(true)}
+                    className="text-xs bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold px-3 py-1.5 rounded-lg border border-sky-500/30 flex items-center gap-1.5 transition active:scale-95"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    社員名簿・権限
+                  </button>
+                  <button
                     onClick={() => setActiveView('mypage')}
                     className="text-xs text-amber-400 hover:text-amber-300 font-bold underline flex items-center gap-1"
                   >
                     <User className="w-3.5 h-3.5" />
-                    自分のマイページを開く
+                    自分のマイページ
                   </button>
                 </div>
               </div>
@@ -388,9 +402,39 @@ export default function Home() {
         onDeleteSite={deleteSite}
       />
 
+      {/* 管理者用社員名簿・役職・権限管理モーダル */}
+      <StaffManagementModal
+        isOpen={isStaffModalOpen}
+        onClose={() => setIsStaffModalOpen(false)}
+        staffs={staffs}
+        currentStaffId={currentStaffId}
+        onUpdateStaff={updateStaffInfo}
+        onAddStaff={addStaff}
+        onDeleteStaff={deleteStaff}
+      />
+
       {/* フッター */}
-      <footer className="border-t border-slate-900 bg-slate-950/80 py-4 px-4 text-center text-xs text-slate-500">
-        <p>建設会社向け リアルタイム現場・位置情報・ステータス共有システム (CraftSync)</p>
+      <footer className="border-t border-slate-900 bg-slate-950/80 py-4 px-4 text-center text-xs text-slate-500 space-y-2">
+        <div className="flex items-center justify-center gap-4 text-[11px] text-slate-400">
+          <a
+            href="/guide"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-amber-400 underline transition"
+          >
+            📖 取扱説明書（マニュアル）
+          </a>
+          <span>•</span>
+          <a
+            href="/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-sky-400 underline transition"
+          >
+            🛠️ 技術仕様書・アーキテクチャ
+          </a>
+        </div>
+        <p>建設会社向け リアルタイム現場・位置情報・ステータス共有システム (CraftSync 愛媛県版)</p>
       </footer>
     </div>
   );

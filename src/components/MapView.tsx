@@ -29,10 +29,10 @@ export const MapView: React.FC<MapViewProps> = ({
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-    // 東京中心（渋谷〜新宿エリア）で初期化
+    // 愛媛県中心（松山〜今治〜新居浜エリア）で初期化
     const map = L.map(mapContainerRef.current, {
-      center: [35.668, 139.715],
-      zoom: 12,
+      center: [33.88, 132.90],
+      zoom: 10,
       zoomControl: false,
     });
 

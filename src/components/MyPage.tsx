@@ -24,6 +24,7 @@ import {
   Mic,
   Printer,
   Calendar,
+  Users,
 } from 'lucide-react';
 
 interface MyPageProps {
@@ -39,6 +40,7 @@ interface MyPageProps {
   onOpenDailyReport: () => void;
   onOpenReportList?: () => void;
   onOpenSiteManagement?: () => void;
+  onOpenStaffManagement?: () => void;
   onLogout: () => void;
 }
 
@@ -50,6 +52,7 @@ export const MyPage: React.FC<MyPageProps> = ({
   onOpenDailyReport,
   onOpenReportList,
   onOpenSiteManagement,
+  onOpenStaffManagement,
   onLogout,
 }) => {
   const [note, setNote] = useState(currentStaff.status_note || '');
@@ -348,8 +351,8 @@ export const MyPage: React.FC<MyPageProps> = ({
         </div>
       </div>
 
-      {/* 6. 管理者専用メニュー（現場一覧の追加・編集・削除） */}
-      {isAdmin && onOpenSiteManagement && (
+      {/* 6. 管理者専用メニュー（現場一覧・社員名簿管理） */}
+      {isAdmin && (
         <div className="bg-slate-900/90 border border-sky-500/30 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -358,25 +361,39 @@ export const MyPage: React.FC<MyPageProps> = ({
               </div>
               <div>
                 <h3 className="font-bold text-sm text-slate-100 flex items-center gap-1.5">
-                  稼働中現場の管理・追加・編集
+                  全社管理・マスタ設定
                   <span className="text-[10px] bg-sky-950 text-sky-400 font-bold px-1.5 py-0.2 rounded border border-sky-800">
                     管理者専用
                   </span>
                 </h3>
                 <p className="text-[11px] text-slate-400">
-                  全社の地図ピンや今日の現場一覧データを追加・編集
+                  愛媛県内の現場追加や社員名簿・役職・アプリ編集権限の設定
                 </p>
               </div>
             </div>
           </div>
 
-          <button
-            onClick={onOpenSiteManagement}
-            className="w-full bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 border border-sky-500/30 font-black p-3.5 rounded-xl text-xs flex items-center justify-center gap-2 transition active:scale-98 shadow"
-          >
-            <Building2 className="w-4 h-4" />
-            <span>現場一覧を開いて追加・編集・削除する</span>
-          </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {onOpenSiteManagement && (
+              <button
+                onClick={onOpenSiteManagement}
+                className="bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 border border-sky-500/30 font-black p-3 rounded-xl text-xs flex items-center justify-center gap-2 transition active:scale-98 shadow"
+              >
+                <Building2 className="w-4 h-4" />
+                <span>現場の追加・編集・工期設定</span>
+              </button>
+            )}
+
+            {onOpenStaffManagement && (
+              <button
+                onClick={onOpenStaffManagement}
+                className="bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300 border border-amber-500/30 font-black p-3 rounded-xl text-xs flex items-center justify-center gap-2 transition active:scale-98 shadow"
+              >
+                <Users className="w-4 h-4" />
+                <span>社員名簿・役職・権限の管理</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
