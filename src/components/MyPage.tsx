@@ -305,7 +305,7 @@ export const MyPage: React.FC<MyPageProps> = ({
               <h3 className="font-bold text-sm text-slate-100 flex items-center gap-1.5">
                 AI作業日報アシスタント
                 <span className="text-[10px] bg-amber-400/20 text-amber-300 font-bold px-1.5 py-0.2 rounded border border-amber-400/30">
-                  音声 ＋ Gemini
+                  音声 ＋ Gemini 3.8 Flash
                 </span>
               </h3>
               <p className="text-[11px] text-slate-400">

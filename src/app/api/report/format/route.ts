@@ -55,8 +55,10 @@ export async function POST(req: NextRequest) {
 ${rawText}
 """`;
 
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+        
+        let response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${apiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -66,11 +68,25 @@ ${rawText}
           }
         );
 
+        // 万が一指定モデルが未利用可能な場合の安全フォールバック
+        if (!response.ok && primaryModel !== 'gemini-2.0-flash') {
+          response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+              }),
+            }
+          );
+        }
+
         if (response.ok) {
           const data = await response.json();
           const generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
           if (generatedText) {
-            return NextResponse.json({ formattedReport: generatedText.trim(), source: 'gemini' });
+            return NextResponse.json({ formattedReport: generatedText.trim(), source: 'gemini', model: primaryModel });
           }
         }
       } catch (geminiError) {

@@ -195,7 +195,7 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
               <h3 className="font-bold text-sm text-slate-100 flex items-center gap-1.5">
                 AI作業日報アシスタント
                 <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.2 rounded font-bold border border-amber-400/30">
-                  音声 ＋ Gemini
+                  音声 ＋ Gemini 3.8 Flash
                 </span>
               </h3>
               <p className="text-[11px] text-slate-400">
@@ -289,7 +289,7 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
                   </span>
                   {aiSource === 'gemini' && (
                     <span className="text-[9px] bg-emerald-950 text-emerald-300 px-1.5 py-0.2 rounded border border-emerald-800 font-bold">
-                      Gemini連携
+                      Gemini 3.8 Flash連携
                     </span>
                   )}
                 </div>
