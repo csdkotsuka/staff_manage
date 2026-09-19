@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Staff, StaffStatus } from '@/lib/types';
 import { INITIAL_STAFFS } from '@/lib/mockData';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { db, isFirebaseConfigured } from '@/lib/firebase';
+import { collection, onSnapshot, doc, updateDoc, setDoc } from 'firebase/firestore';
 
 const STORAGE_KEY = 'craft_staff_status_cache_v1';
 const BROADCAST_CHANNEL_NAME = 'craft_staff_sync_channel';
@@ -14,8 +15,9 @@ export function useStaffStatus() {
   const [isLiveConnected, setIsLiveConnected] = useState<boolean>(false);
   const [lastNotification, setLastNotification] = useState<string | null>(null);
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
+  const isInitialSnapshotRef = useRef<boolean>(true);
 
-  // 1. 初期ロード & LocalStorageの読み込み
+  // 1. 初期ロード & LocalStorageの読み込み & リアルタイム同期
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -52,48 +54,60 @@ export function useStaffStatus() {
       }
     }
 
-    // Supabase連携
-    if (isSupabaseConfigured && supabase) {
-      const client = supabase;
-      // 初期データ取得
-      client
-        .from('staffs')
-        .select('*')
-        .order('name')
-        .then(({ data, error }) => {
-          if (!error && data && data.length > 0) {
-            setStaffs(data as Staff[]);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-          }
-        });
+    // Firebase (Cloud Firestore) 連携
+    if (isFirebaseConfigured && db) {
+      const staffsCollection = collection(db, 'staffs');
 
-      // Realtime購読
-      const channel = client
-        .channel('public:staffs')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'staffs' },
-          (payload) => {
-            if (payload.eventType === 'UPDATE') {
-              const updated = payload.new as Staff;
-              setStaffs((prev) =>
-                prev.map((s) => (s.id === updated.id ? updated : s))
-              );
-              setLastNotification(`${updated.name}さんのステータスが更新されました`);
-              setTimeout(() => setLastNotification(null), 4000);
+      const unsubscribe = onSnapshot(
+        staffsCollection,
+        async (snapshot) => {
+          setIsLiveConnected(true);
+
+          // コレクションが空の場合、初期データを自動投入（Auto-seed）
+          if (snapshot.empty) {
+            for (const staff of INITIAL_STAFFS) {
+              await setDoc(doc(db!, 'staffs', staff.id), staff);
             }
+            return;
           }
-        )
-        .subscribe((status) => {
-          setIsLiveConnected(status === 'SUBSCRIBED');
-        });
+
+          const firestoreStaffs: Staff[] = [];
+          snapshot.forEach((docSnap) => {
+            firestoreStaffs.push(docSnap.data() as Staff);
+          });
+
+          // ID順で並び替え
+          firestoreStaffs.sort((a, b) => a.id.localeCompare(b.id));
+
+          setStaffs(firestoreStaffs);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(firestoreStaffs));
+          }
+
+          // 初回以降の更新通知
+          if (!isInitialSnapshotRef.current) {
+            snapshot.docChanges().forEach((change) => {
+              if (change.type === 'modified') {
+                const updated = change.doc.data() as Staff;
+                setLastNotification(`${updated.name}さんのステータスが更新されました`);
+                setTimeout(() => setLastNotification(null), 4000);
+              }
+            });
+          }
+          isInitialSnapshotRef.current = false;
+        },
+        (error) => {
+          console.error('Firestore snapshot error:', error);
+          setIsLiveConnected(false);
+        }
+      );
 
       return () => {
-        client.removeChannel(channel);
+        unsubscribe();
         broadcastChannelRef.current?.close();
       };
     } else {
-      // モックモードでも接続状態を有効にする
+      // モックモード（ローカルデモ）でも接続状態を有効にする
       setIsLiveConnected(true);
       return () => {
         broadcastChannelRef.current?.close();
@@ -143,23 +157,27 @@ export function useStaffStatus() {
         return next;
       });
 
-      // Supabaseに反映
-      if (isSupabaseConfigured && supabase) {
-        const updatePayload: Partial<Staff> = {
+      // Firebase (Cloud Firestore) に反映
+      if (isFirebaseConfigured && db) {
+        const updatePayload: Record<string, unknown> = {
           status: newStatus,
           updated_at: now,
         };
         if (siteName !== undefined) updatePayload.current_site_name = siteName;
         if (note !== undefined) updatePayload.status_note = note;
 
-        await supabase.from('staffs').update(updatePayload).eq('id', staffId);
+        try {
+          await updateDoc(doc(db, 'staffs', staffId), updatePayload);
+        } catch (error) {
+          console.error('Failed to update Firestore document:', error);
+        }
       }
     },
     []
   );
 
-  // 3. 全体リセット（デモ検証用）
-  const resetToDefault = useCallback(() => {
+  // 3. 全体リセット（デモ検証・Firestore初期化用）
+  const resetToDefault = useCallback(async () => {
     setStaffs(INITIAL_STAFFS);
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_STAFFS));
@@ -170,6 +188,12 @@ export function useStaffStatus() {
         updatedStaff: INITIAL_STAFFS[0],
         message: 'デモデータを初期化しました',
       });
+    }
+
+    if (isFirebaseConfigured && db) {
+      for (const staff of INITIAL_STAFFS) {
+        await setDoc(doc(db, 'staffs', staff.id), staff);
+      }
     }
   }, []);
 
@@ -183,7 +207,7 @@ export function useStaffStatus() {
     updateStatus,
     resetToDefault,
     isLiveConnected,
-    isMockMode: !isSupabaseConfigured,
+    isMockMode: !isFirebaseConfigured,
     lastNotification,
   };
 }

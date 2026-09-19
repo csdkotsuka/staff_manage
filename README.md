@@ -43,38 +43,42 @@ npm run dev
 
 ---
 
-## 🗄️ Supabaseとの本番連携手順
+## 🔥 Firebase (Cloud Firestore) との本番連携手順
 
-実機のスマホや別PC間で同期させたい場合は、Supabaseと連携します。
+実機のスマホや別PC間でリアルタイム同期させたい場合は、Firebaseと連携します。
+（SQLの作成などは不要です。初回アクセス時にアプリが自動で社員データを投入します）
 
-### 1. Supabaseプロジェクトの作成
-1. [Supabase](https://supabase.com) にログインし、新規プロジェクトを作成します。
+### 1. FirebaseプロジェクトとFirestoreの作成
+1. [Firebase Console](https://console.firebase.google.com/) にログインし、「プロジェクトを追加」します。
+2. 左メニュー「構築」>「Firestore Database」を開き、「データベースの作成」をクリックします。
+3. ロケーション（例: `asia-northeast1 (Tokyo)`）を選択し、セキュリティルールは「テストモードで開始」（30日間全アクセス許可）を選んで作成します。
 
-### 2. DBスキーマの適用
-1. Supabaseダッシュボードの「SQL Editor」を開きます。
-2. 本リポジトリの `supabase/schema.sql` の内容をコピーして貼り付け、「Run」を実行します。
-   - `staffs`（社員テーブル）、`sites`（現場テーブル）、`rescue_requests`（緊急出動テーブル）が作成され、初期サンプルデータ5名分が投入されます。
-   - Supabase Realtime が有効化されます。
+### 2. ウェブアプリの登録と設定情報の取得
+1. プロジェクトの概要（歯車アイコン >「プロジェクトの設定」）を開きます。
+2. 「マイアプリ」の「ウェブ（`</>` アイコン）」をクリックし、アプリ名（例: `staff-manage`）を登録します。
+3. 表示された `firebaseConfig` の値（apiKey, projectId 等）をコピーします。
 
 ### 3. 環境変数の設定
-プロジェクトルートに `.env.local` を作成し、Supabaseの接続情報を入力します：
+ローカルで動かす場合は、ルート直下に `.env.local` を作成して貼り付けます：
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxxxxxxxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSy...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789...
+NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:...
 ```
 
-### 4. アプリ再起動
-```bash
-npm run dev
-```
-画面上部のインジケータが「**Supabase Live**」になり、実機スマートフォン等からリアルタイムに同期します。
+Vercel上で本番公開する場合は、Vercelの **Settings > Environment Variables** に上記6つの環境変数を登録して再デプロイします。
+
+### 4. 動作確認
+アプリを開くと、ヘッダーのインジケータが「**Firebase Live**」に変わり、実機スマートフォンや他端末と完全リアルタイムに同期します！
 
 ---
 
 ## 🌐 Vercelへのデプロイ
 
-1. GitHubリポジトリにプッシュします。
-2. [Vercel](https://vercel.com) でリポジトリをインポートします。
-3. Environment Variables に `NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` を登録します。
-4. 「Deploy」をクリックすれば、数分で全世界からアクセス可能なPWAアプリが公開されます。
+1. GitHubリポジトリにプッシュすると自動でデプロイが実行されます。
+2. Vercelの **Settings > Environment Variables** に上記の Firebase 環境変数を登録します。
+3. 数分で全世界からアクセス可能なPWAアプリとして公開されます。

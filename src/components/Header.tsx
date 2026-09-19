@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
               />
               <Radio className="w-3 h-3" />
-              {isMockMode ? 'デモ同期稼働中' : 'Supabase Live'}
+              {isMockMode ? 'デモ同期稼働中' : 'Firebase Live'}
             </span>
           </div>
         </div>

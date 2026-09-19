@@ -88,16 +88,10 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <Info className="w-4 h-4 text-amber-400 shrink-0" />
               <span>
-                <strong>デモモード動作中:</strong> 別タブでこのURLを開いてステータスを変更すると、リアルタイムに双方向同期します。
-                Supabase URLとANONキーを<code>.env.local</code>に設定すると本番Supabase Realtimeに切り替わります。
+                <strong>デモモード動作中:</strong> 別タブや別ウィンドウでこのURLを開いてステータスを変更すると、リアルタイムに双方向同期します。
+                Firebase環境変数を設定すると、複数端末やスマートフォンとの本格的なリアルタイム同期（Firebase Live）に切り替わります。
               </span>
             </div>
-            <a
-              href="#supabase-guide"
-              className="text-amber-400 hover:text-amber-300 underline shrink-0 font-bold"
-            >
-              DBスキーマ(SQL)あり
-            </a>
           </div>
         )}
 
