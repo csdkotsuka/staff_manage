@@ -5,6 +5,7 @@ export interface Staff {
   name: string;
   role: string;
   phone: string;
+  email?: string;
   avatar_color: string;
   status: StaffStatus;
   current_site_name: string;
@@ -12,6 +13,29 @@ export interface Staff {
   lng: number;
   status_note?: string;
   updated_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: string;
+  senderColor?: string;
+  text: string;
+  createdAt: string;
+  isQuick?: boolean;
+}
+
+export interface WeatherForecastDay {
+  date: string; // YYYY-MM-DD
+  dayOfWeek: string; // 月, 火, etc.
+  weatherCode: number;
+  weatherText: string;
+  weatherIcon: string;
+  tempMax: number;
+  tempMin: number;
+  precipitationProb: number;
+  isRainy: boolean;
 }
 
 export interface Site {
