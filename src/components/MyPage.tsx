@@ -22,6 +22,7 @@ import {
   Building2,
   FileText,
   Mic,
+  Printer,
 } from 'lucide-react';
 
 interface MyPageProps {
@@ -35,6 +36,7 @@ interface MyPageProps {
   onOpenMainBoard: () => void;
   onOpenChat: () => void;
   onOpenDailyReport: () => void;
+  onOpenReportList?: () => void;
   onOpenSiteManagement?: () => void;
   onLogout: () => void;
 }
@@ -45,6 +47,7 @@ export const MyPage: React.FC<MyPageProps> = ({
   onOpenMainBoard,
   onOpenChat,
   onOpenDailyReport,
+  onOpenReportList,
   onOpenSiteManagement,
   onLogout,
 }) => {
@@ -315,13 +318,22 @@ export const MyPage: React.FC<MyPageProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={onOpenDailyReport}
-          className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black p-3.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg transition active:scale-98"
-        >
-          <Mic className="w-4 h-4" />
-          <span>本日の日報を作成・AI校正する</span>
-        </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+          <button
+            onClick={onOpenDailyReport}
+            className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black p-3.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg transition active:scale-98"
+          >
+            <Mic className="w-4 h-4" />
+            <span>本日の日報を作成・AI校正</span>
+          </button>
+          <button
+            onClick={onOpenReportList}
+            className="bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300 border border-amber-500/30 font-bold p-3.5 rounded-xl text-xs flex items-center justify-center gap-2 transition active:scale-98 shadow"
+          >
+            <Printer className="w-4 h-4" />
+            <span>提出済み日報一覧・PDF出力</span>
+          </button>
+        </div>
       </div>
 
       {/* 6. 管理者専用メニュー（現場一覧の追加・編集・削除） */}

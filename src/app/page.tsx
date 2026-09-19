@@ -13,7 +13,9 @@ import { GroupChat } from '@/components/GroupChat';
 import { AuthModal } from '@/components/AuthModal';
 import { MyPage } from '@/components/MyPage';
 import { DailyReportModal } from '@/components/DailyReportModal';
+import { DailyReportListModal } from '@/components/DailyReportListModal';
 import { SiteManagementModal } from '@/components/SiteManagementModal';
+import { useDailyReports } from '@/hooks/useDailyReports';
 import {
   Bell,
   MapPin,
@@ -24,6 +26,7 @@ import {
   Info,
   User,
   Map,
+  FileText,
 } from 'lucide-react';
 
 export default function Home() {
@@ -42,6 +45,9 @@ export default function Home() {
   // 現場データのリアルタイム管理
   const { sites, addSite, updateSite, deleteSite } = useSites();
 
+  // 日報データのリアルタイム管理（Firestore同期）
+  const { reports, deleteReport } = useDailyReports();
+
   // 画面ビュー切り替え ('mypage' または 'main')
   const [activeView, setActiveView] = useState<'mypage' | 'main'>('mypage');
 
@@ -50,6 +56,7 @@ export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isReportListModalOpen, setIsReportListModalOpen] = useState(false);
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
 
   // ログイン状態
@@ -148,6 +155,7 @@ export default function Home() {
             onOpenMainBoard={() => setActiveView('main')}
             onOpenChat={() => setIsChatOpen(true)}
             onOpenDailyReport={() => setIsReportModalOpen(true)}
+            onOpenReportList={() => setIsReportListModalOpen(true)}
             onOpenSiteManagement={() => setIsSiteModalOpen(true)}
             onLogout={handleLogout}
           />
@@ -242,13 +250,22 @@ export default function Home() {
                     ※各カードから直接ステータス変更可能
                   </span>
                 </h2>
-                <button
-                  onClick={() => setActiveView('mypage')}
-                  className="text-xs text-amber-400 hover:text-amber-300 font-bold underline flex items-center gap-1"
-                >
-                  <User className="w-3.5 h-3.5" />
-                  自分のマイページを開く
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setIsReportListModalOpen(true)}
+                    className="text-xs bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold px-3 py-1.5 rounded-lg border border-amber-500/30 flex items-center gap-1.5 transition active:scale-95"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    日報一覧・PDF
+                  </button>
+                  <button
+                    onClick={() => setActiveView('mypage')}
+                    className="text-xs text-amber-400 hover:text-amber-300 font-bold underline flex items-center gap-1"
+                  >
+                    <User className="w-3.5 h-3.5" />
+                    自分のマイページを開く
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -336,6 +353,15 @@ export default function Home() {
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         currentStaff={currentStaff}
+      />
+
+      {/* 提出済み日報一覧・PDF帳票出力モーダル */}
+      <DailyReportListModal
+        isOpen={isReportListModalOpen}
+        onClose={() => setIsReportListModalOpen(false)}
+        reports={reports}
+        currentStaff={currentStaff}
+        onDeleteReport={deleteReport}
       />
 
       {/* 管理者用現場管理モーダル */}
