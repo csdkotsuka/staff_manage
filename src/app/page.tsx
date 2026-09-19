@@ -12,6 +12,7 @@ import { WeatherWidget } from '@/components/WeatherWidget';
 import { GroupChat } from '@/components/GroupChat';
 import { AuthModal } from '@/components/AuthModal';
 import { MyPage } from '@/components/MyPage';
+import { DailyReportModal } from '@/components/DailyReportModal';
 import {
   Bell,
   MapPin,
@@ -44,6 +45,7 @@ export default function Home() {
   const [isRescueModalOpen, setIsRescueModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // ログイン状態
   const [isLoggedIn, setIsLoggedIn] = useState(true); // 初期状態で操作可能な社員にログイン済み扱い
@@ -140,6 +142,7 @@ export default function Home() {
             onUpdateStatus={updateStatus}
             onOpenMainBoard={() => setActiveView('main')}
             onOpenChat={() => setIsChatOpen(true)}
+            onOpenDailyReport={() => setIsReportModalOpen(true)}
             onLogout={handleLogout}
           />
         )}
@@ -320,6 +323,13 @@ export default function Home() {
         staffs={staffs}
         onSelectStaff={setCurrentStaffId}
         onLoginSuccess={handleLoginSuccess}
+      />
+
+      {/* 音声＋Gemini AI日報モーダル */}
+      <DailyReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        currentStaff={currentStaff}
       />
 
       {/* フッター */}

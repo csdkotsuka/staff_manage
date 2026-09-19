@@ -20,7 +20,8 @@ import {
   Edit3,
   Check,
   Building2,
-  ShieldCheck,
+  FileText,
+  Mic,
 } from 'lucide-react';
 
 interface MyPageProps {
@@ -33,6 +34,7 @@ interface MyPageProps {
   ) => void;
   onOpenMainBoard: () => void;
   onOpenChat: () => void;
+  onOpenDailyReport: () => void;
   onLogout: () => void;
 }
 
@@ -41,6 +43,7 @@ export const MyPage: React.FC<MyPageProps> = ({
   onUpdateStatus,
   onOpenMainBoard,
   onOpenChat,
+  onOpenDailyReport,
   onLogout,
 }) => {
   const [note, setNote] = useState(currentStaff.status_note || '');
@@ -275,6 +278,36 @@ export const MyPage: React.FC<MyPageProps> = ({
             </>
           )}
         </div>
+      </div>
+
+      {/* 5. 音声＋AI作業日報アシスタント */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/30 border border-amber-500/30 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+              <FileText className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-slate-100 flex items-center gap-1.5">
+                AI作業日報アシスタント
+                <span className="text-[10px] bg-amber-400/20 text-amber-300 font-bold px-1.5 py-0.2 rounded border border-amber-400/30">
+                  音声 ＋ Gemini
+                </span>
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                スマホで話すだけでプロの日報フォーマットに自動整形
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={onOpenDailyReport}
+          className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black p-3.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg transition active:scale-98"
+        >
+          <Mic className="w-4 h-4" />
+          <span>本日の日報を作成・AI校正する</span>
+        </button>
       </div>
 
       {/* 5. 画面切り替え大ボタン（全体ボードへ / チャットを開く） */}

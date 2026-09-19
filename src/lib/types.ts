@@ -22,8 +22,21 @@ export interface ChatMessage {
   senderRole: string;
   senderColor?: string;
   text: string;
+  imageUrl?: string;
   createdAt: string;
   isQuick?: boolean;
+}
+
+export interface DailyReport {
+  id: string;
+  staffId: string;
+  staffName: string;
+  staffRole: string;
+  date: string; // YYYY-MM-DD
+  siteName: string;
+  rawInput: string; // 音声または入力した生テキスト
+  formattedReport: string; // AI整形された日報本文
+  createdAt: string;
 }
 
 export interface WeatherForecastDay {

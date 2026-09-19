@@ -19,6 +19,10 @@ import {
   Clock,
   Zap,
   CheckCheck,
+  Camera,
+  Image as ImageIcon,
+  Maximize2,
+  Trash2,
 } from 'lucide-react';
 
 interface GroupChatProps {
@@ -39,6 +43,41 @@ const QUICK_TEMPLATES = [
 
 const LOCAL_STORAGE_CHAT_KEY = 'craft_group_chat_history_v1';
 const CHAT_BROADCAST_CHANNEL = 'craft_chat_broadcast_sync';
+
+// 画像圧縮ユーティリティ（長辺1000px・JPEG軽量化でFirestoreに直接保存可能）
+function compressImage(file: File, maxWidth = 1000, quality = 0.7): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxWidth) {
+            width = Math.round((width * maxWidth) / height);
+            height = maxWidth;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('Canvas context error'));
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 // デモ用初期メッセージ
 const INITIAL_DEMO_MESSAGES: ChatMessage[] = [
@@ -79,7 +118,12 @@ export const GroupChat: React.FC<GroupChatProps> = ({
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_DEMO_MESSAGES);
   const [inputText, setInputText] = useState('');
+  const [attachedImage, setAttachedImage] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
 
@@ -126,7 +170,6 @@ export const GroupChat: React.FC<GroupChatProps> = ({
         q,
         async (snapshot) => {
           if (snapshot.empty) {
-            // Firestore側が空の場合は初期デモメッセージを投入
             for (const msg of INITIAL_DEMO_MESSAGES) {
               await addDoc(messagesRef, msg);
             }
@@ -143,6 +186,7 @@ export const GroupChat: React.FC<GroupChatProps> = ({
               senderRole: data.senderRole,
               senderColor: data.senderColor,
               text: data.text,
+              imageUrl: data.imageUrl,
               createdAt: data.createdAt,
               isQuick: data.isQuick,
             });
@@ -176,10 +220,28 @@ export const GroupChat: React.FC<GroupChatProps> = ({
     }
   }, [messages, isOpen]);
 
+  // 写真ファイル選択・圧縮ハンドラ
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsCompressing(true);
+    try {
+      const compressedDataUrl = await compressImage(file, 1000, 0.7);
+      setAttachedImage(compressedDataUrl);
+    } catch (err) {
+      console.error('Image compression failed', err);
+      alert('画像の処理に失敗しました');
+    } finally {
+      setIsCompressing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   // メッセージ送信処理
   const handleSendMessage = async (textToSend?: string, isQuick: boolean = false) => {
     const text = (textToSend || inputText).trim();
-    if (!text || isSending) return;
+    if ((!text && !attachedImage) || isSending) return;
 
     setIsSending(true);
     const newMsg: ChatMessage = {
@@ -188,7 +250,8 @@ export const GroupChat: React.FC<GroupChatProps> = ({
       senderName: currentStaff.name,
       senderRole: currentStaff.role,
       senderColor: currentStaff.avatar_color,
-      text,
+      text: text || (attachedImage ? '📷 写真を送信しました' : ''),
+      imageUrl: attachedImage || undefined,
       createdAt: new Date().toISOString(),
       isQuick,
     };
@@ -212,7 +275,7 @@ export const GroupChat: React.FC<GroupChatProps> = ({
     // Firestore反映
     if (isFirebaseConfigured && db) {
       try {
-        await addDoc(collection(db, 'messages'), {
+        const payload: Record<string, unknown> = {
           senderId: newMsg.senderId,
           senderName: newMsg.senderName,
           senderRole: newMsg.senderRole,
@@ -220,20 +283,25 @@ export const GroupChat: React.FC<GroupChatProps> = ({
           text: newMsg.text,
           createdAt: newMsg.createdAt,
           isQuick: newMsg.isQuick || false,
-        });
+        };
+        if (newMsg.imageUrl) {
+          payload.imageUrl = newMsg.imageUrl;
+        }
+        await addDoc(collection(db, 'messages'), payload);
       } catch (e) {
         console.error('Failed to post message to Firestore', e);
       }
     }
 
     setInputText('');
+    setAttachedImage(null);
     setIsSending(false);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg h-[88vh] flex flex-col shadow-2xl overflow-hidden">
         {/* チャットヘッダー */}
         <div className="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
@@ -275,7 +343,6 @@ export const GroupChat: React.FC<GroupChatProps> = ({
                 key={msg.id}
                 className={`flex gap-2.5 ${isMe ? 'justify-end' : 'justify-start'}`}
               >
-                {/* 相手の場合のアバター */}
                 {!isMe && (
                   <div
                     className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-white shrink-0 mt-1 shadow"
@@ -285,8 +352,7 @@ export const GroupChat: React.FC<GroupChatProps> = ({
                   </div>
                 )}
 
-                <div className={`flex flex-col max-w-[80%] ${isMe ? 'items-end' : 'items-start'}`}>
-                  {/* 送信者名・役職 */}
+                <div className={`flex flex-col max-w-[82%] ${isMe ? 'items-end' : 'items-start'}`}>
                   {!isMe && (
                     <div className="flex items-center gap-1.5 mb-1 px-1">
                       <span className="text-xs font-bold text-slate-300">
@@ -300,22 +366,40 @@ export const GroupChat: React.FC<GroupChatProps> = ({
 
                   {/* 吹き出し */}
                   <div
-                    className={`p-3 rounded-2xl text-xs leading-relaxed break-words shadow-md ${
+                    className={`p-3 rounded-2xl text-xs leading-relaxed break-words shadow-md space-y-2 ${
                       isMe
                         ? 'bg-emerald-600 text-white rounded-tr-none font-medium'
                         : 'bg-slate-800/95 text-slate-100 border border-slate-700/80 rounded-tl-none'
                     }`}
                   >
                     {msg.isQuick && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.2 mb-1 rounded bg-black/20 text-[10px] font-bold">
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-black/20 text-[10px] font-bold">
                         <Zap className="w-2.5 h-2.5 text-amber-300" />
                         定型速報
                       </span>
                     )}
-                    <p className="whitespace-pre-wrap">{msg.text}</p>
+
+                    {/* 写真添付がある場合 */}
+                    {msg.imageUrl && (
+                      <div className="relative group cursor-pointer overflow-hidden rounded-xl border border-white/20">
+                        <img
+                          src={msg.imageUrl}
+                          alt="現場写真"
+                          className="max-h-56 w-full object-cover rounded-xl transition group-hover:scale-105"
+                          onClick={() => setPreviewImage(msg.imageUrl || null)}
+                        />
+                        <div
+                          className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition"
+                          onClick={() => setPreviewImage(msg.imageUrl || null)}
+                        >
+                          <Maximize2 className="w-5 h-5 text-white" />
+                        </div>
+                      </div>
+                    )}
+
+                    {msg.text && <p className="whitespace-pre-wrap">{msg.text}</p>}
                   </div>
 
-                  {/* 時刻 */}
                   <div className="flex items-center gap-1 mt-0.5 px-1 text-[10px] text-slate-400">
                     <Clock className="w-2.5 h-2.5" />
                     <span>{timeStr}</span>
@@ -328,7 +412,35 @@ export const GroupChat: React.FC<GroupChatProps> = ({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* クイック定型文ピッカー（現場手袋対応） */}
+        {/* 添付写真プレビュー枠（送信前） */}
+        {attachedImage && (
+          <div className="px-4 py-2 bg-slate-900 border-t border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <img
+                src={attachedImage}
+                alt="添付プレビュー"
+                className="w-12 h-12 object-cover rounded-lg border border-amber-500"
+              />
+              <div>
+                <span className="text-xs font-bold text-slate-200 block">
+                  現場写真を添付中
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  送信ボタンを押すと全員に共有されます
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setAttachedImage(null)}
+              className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition"
+              title="写真を削除"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* クイック定型文ピッカー */}
         <div className="p-2 bg-slate-900 border-t border-slate-800">
           <div className="flex items-center gap-1.5 mb-1.5 px-1">
             <Zap className="w-3 h-3 text-amber-400" />
@@ -358,6 +470,24 @@ export const GroupChat: React.FC<GroupChatProps> = ({
             }}
             className="flex items-center gap-2"
           >
+            {/* 写真撮影・アルバム選択ボタン */}
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isCompressing}
+              className="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-700 rounded-xl transition active:scale-95 flex items-center justify-center shrink-0"
+              title="現場の写真を撮影または選択"
+            >
+              <Camera className={`w-4 h-4 ${isCompressing ? 'animate-spin' : ''}`} />
+            </button>
+
             <input
               type="text"
               value={inputText}
@@ -367,7 +497,7 @@ export const GroupChat: React.FC<GroupChatProps> = ({
             />
             <button
               type="submit"
-              disabled={!inputText.trim() || isSending}
+              disabled={(!inputText.trim() && !attachedImage) || isSending}
               className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1 transition shrink-0 active:scale-95 shadow"
             >
               <Send className="w-3.5 h-3.5" />
@@ -376,6 +506,26 @@ export const GroupChat: React.FC<GroupChatProps> = ({
           </form>
         </div>
       </div>
+
+      {/* 写真拡大プレビューモーダル */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-60 bg-black/95 flex items-center justify-center p-3 animate-in fade-in"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-4 right-4 p-2 text-white bg-slate-800/80 hover:bg-slate-700 rounded-full transition"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={previewImage}
+            alt="写真拡大"
+            className="max-h-[90vh] max-w-[95vw] object-contain rounded-xl shadow-2xl"
+          />
+        </div>
+      )}
     </div>
   );
 };
