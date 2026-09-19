@@ -23,6 +23,7 @@ import {
   FileText,
   Mic,
   Printer,
+  Calendar,
 } from 'lucide-react';
 
 interface MyPageProps {
@@ -292,6 +293,17 @@ export const MyPage: React.FC<MyPageProps> = ({
               <p className="text-amber-400/90 text-[11px] pl-6 font-medium">
                 工事内容: {assignedSite.work_description}
               </p>
+              {(assignedSite.startDate || assignedSite.endDate) && (
+                <p className="text-sky-400 text-[11px] pl-6 font-medium flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  工期: {assignedSite.startDate || '未定'} 〜 {assignedSite.endDate || '未定'}
+                </p>
+              )}
+              {assignedSite.notes && (
+                <p className="text-slate-300 text-[11px] ml-6 mt-1 p-2 bg-slate-900 rounded-lg border border-slate-800">
+                  <span className="text-amber-400/90 font-bold">現場備考:</span> {assignedSite.notes}
+                </p>
+              )}
             </>
           )}
         </div>

@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Save,
   AlertTriangle,
+  Calendar,
 } from 'lucide-react';
 
 interface SiteManagementModalProps {
@@ -50,6 +51,9 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
   const [newAddress, setNewAddress] = useState('');
   const [newClient, setNewClient] = useState('');
   const [newWork, setNewWork] = useState('');
+  const [newStartDate, setNewStartDate] = useState('');
+  const [newEndDate, setNewEndDate] = useState('');
+  const [newNotes, setNewNotes] = useState('');
   const [newLat, setNewLat] = useState<number>(35.6580);
   const [newLng, setNewLng] = useState<number>(139.7016);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,6 +63,9 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
   const [editAddress, setEditAddress] = useState('');
   const [editClient, setEditClient] = useState('');
   const [editWork, setEditWork] = useState('');
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
+  const [editNotes, setEditNotes] = useState('');
   const [editStatus, setEditStatus] = useState<'planning' | 'in_progress' | 'completed'>('in_progress');
 
   // ESCキーで閉じる
@@ -80,6 +87,9 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
     setEditAddress(site.address);
     setEditClient(site.client_name || '');
     setEditWork(site.work_description || '');
+    setEditStartDate(site.startDate || '');
+    setEditEndDate(site.endDate || '');
+    setEditNotes(site.notes || '');
     setEditStatus(site.status);
   };
 
@@ -91,6 +101,9 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
       address: editAddress,
       client_name: editClient,
       work_description: editWork,
+      startDate: editStartDate,
+      endDate: editEndDate,
+      notes: editNotes,
       status: editStatus,
     });
     setEditingSiteId(null);
@@ -115,6 +128,9 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
         address: newAddress || '東京都内',
         client_name: newClient || '元請建設会社様',
         work_description: newWork || '内装・設備工事',
+        startDate: newStartDate,
+        endDate: newEndDate,
+        notes: newNotes,
         lat: newLat,
         lng: newLng,
         status: 'in_progress',
@@ -125,6 +141,9 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
       setNewAddress('');
       setNewClient('');
       setNewWork('');
+      setNewStartDate('');
+      setNewEndDate('');
+      setNewNotes('');
       setActiveTab('list');
     } catch (err) {
       console.error(err);
@@ -268,6 +287,36 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
                             />
                           </div>
                         </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[11px] text-slate-400 mb-0.5">工期開始日</label>
+                            <input
+                              type="date"
+                              value={editStartDate}
+                              onChange={(e) => setEditStartDate(e.target.value)}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-100"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-slate-400 mb-0.5">工期終了日</label>
+                            <input
+                              type="date"
+                              value={editEndDate}
+                              onChange={(e) => setEditEndDate(e.target.value)}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-100"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-[11px] text-slate-400 mb-0.5">現場特記事項・備考</label>
+                          <textarea
+                            rows={2}
+                            value={editNotes}
+                            onChange={(e) => setEditNotes(e.target.value)}
+                            placeholder="例: 地下搬入口から入場、ヘルメット顎紐徹底、駐車スペース等"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-100 placeholder-slate-500"
+                          />
+                        </div>
                       </div>
                     </div>
                   );
@@ -278,7 +327,7 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
                     key={site.id}
                     className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition flex items-start justify-between gap-3"
                   >
-                    <div className="space-y-1">
+                    <div className="space-y-1.5 flex-1">
                       <div className="flex items-center gap-2">
                         <h4 className="font-bold text-sm text-slate-200">{site.name}</h4>
                         <span className="text-[10px] bg-emerald-950 text-emerald-400 px-1.5 py-0.2 rounded border border-emerald-800">
@@ -289,10 +338,21 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
                         <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
                         {site.address}
                       </p>
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 pt-1">
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 pt-0.5">
                         <span className="text-amber-400/90 font-medium">工種: {site.work_description}</span>
                         <span>元請: {site.client_name}</span>
+                        {(site.startDate || site.endDate) && (
+                          <span className="flex items-center gap-1 text-sky-400 font-medium">
+                            <Calendar className="w-3 h-3" />
+                            期間: {site.startDate || '未定'} 〜 {site.endDate || '未定'}
+                          </span>
+                        )}
                       </div>
+                      {site.notes && (
+                        <p className="text-[11px] text-slate-400 bg-slate-900/80 rounded-lg px-2.5 py-1.5 border border-slate-800 mt-1">
+                          <span className="text-amber-400/80 font-bold">備考:</span> {site.notes}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0">
@@ -372,6 +432,44 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    工期開始日
+                  </label>
+                  <input
+                    type="date"
+                    value={newStartDate}
+                    onChange={(e) => setNewStartDate(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    工期終了日
+                  </label>
+                  <input
+                    type="date"
+                    value={newEndDate}
+                    onChange={(e) => setNewEndDate(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  現場特記事項・備考
+                </label>
+                <textarea
+                  rows={2}
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
+                  placeholder="例: 車両進入は地下搬入口より。ヘルメット顎紐・親綱使用を徹底。指定詰所は3Fです。"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                />
               </div>
 
               {/* エリア座標の簡単選択 */}

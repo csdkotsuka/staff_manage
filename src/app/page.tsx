@@ -27,6 +27,7 @@ import {
   User,
   Map,
   FileText,
+  Calendar,
 } from 'lucide-react';
 
 export default function Home() {
@@ -46,7 +47,7 @@ export default function Home() {
   const { sites, addSite, updateSite, deleteSite } = useSites();
 
   // 日報データのリアルタイム管理（Firestore同期）
-  const { reports, deleteReport } = useDailyReports();
+  const { reports, deleteReport, approveReport, saveSupervisorSignature } = useDailyReports();
 
   // 画面ビュー切り替え ('mypage' または 'main')
   const [activeView, setActiveView] = useState<'mypage' | 'main'>('mypage');
@@ -299,12 +300,23 @@ export default function Home() {
                 {sites.map((site) => (
                   <div
                     key={site.id}
-                    className="bg-slate-950/60 p-3 rounded-lg border border-slate-800/80 text-xs flex flex-col justify-between"
+                    className="bg-slate-950/60 p-3 rounded-lg border border-slate-800/80 text-xs flex flex-col justify-between space-y-2"
                   >
                     <div>
                       <h4 className="font-bold text-slate-200 leading-snug">{site.name}</h4>
                       <p className="text-slate-400 text-[11px] mt-1">{site.address}</p>
                       <p className="text-amber-400/90 text-[11px] mt-1">工種: {site.work_description}</p>
+                      {(site.startDate || site.endDate) && (
+                        <p className="text-sky-400 text-[10px] mt-1 flex items-center gap-1 font-medium">
+                          <Calendar className="w-3 h-3" />
+                          工期: {site.startDate || '未定'} 〜 {site.endDate || '未定'}
+                        </p>
+                      )}
+                      {site.notes && (
+                        <p className="text-slate-400 text-[10px] mt-1 bg-slate-900/90 p-1.5 rounded border border-slate-800">
+                          <span className="text-amber-400/80 font-bold">備考:</span> {site.notes}
+                        </p>
+                      )}
                     </div>
                     <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between">
                       <span className="text-[10px] text-slate-500 font-medium">{site.client_name}</span>
@@ -362,6 +374,8 @@ export default function Home() {
         reports={reports}
         currentStaff={currentStaff}
         onDeleteReport={deleteReport}
+        onApproveReport={approveReport}
+        onSaveSupervisorSignature={saveSupervisorSignature}
       />
 
       {/* 管理者用現場管理モーダル */}

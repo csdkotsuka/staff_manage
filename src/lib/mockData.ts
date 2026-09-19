@@ -10,6 +10,9 @@ export const INITIAL_SITES: Site[] = [
     client_name: '東急建設様',
     work_description: '内装ボード貼り・配管設備点検',
     status: 'in_progress',
+    startDate: '2026-09-01',
+    endDate: '2026-10-31',
+    notes: '車両進入は地下搬入口より。ヘルメット顎紐・親綱使用を徹底。指定詰所は3Fです。',
   },
   {
     id: 'site-2',
@@ -20,6 +23,9 @@ export const INITIAL_SITES: Site[] = [
     client_name: '三井住友建設様',
     work_description: '高圧電気ケーブル敷設・分電盤交換',
     status: 'in_progress',
+    startDate: '2026-08-15',
+    endDate: '2026-09-30',
+    notes: '夜間作業時は事前入館証必須。停電作業は火・木の14:00以降のみ実施可。',
   },
   {
     id: 'site-3',
@@ -30,6 +36,9 @@ export const INITIAL_SITES: Site[] = [
     client_name: '野村不動産様',
     work_description: '天井照明LED化工事および撤去作業',
     status: 'in_progress',
+    startDate: '2026-09-10',
+    endDate: '2026-09-25',
+    notes: '他テナント営業中のため騒音・振動作業は18:00以降に制限。養生徹底のこと。',
   },
 ];
 

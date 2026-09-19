@@ -38,6 +38,13 @@ export interface DailyReport {
   rawInput: string; // 音声または入力した生テキスト
   formattedReport: string; // AI整形された日報本文
   createdAt: string;
+
+  // 承認・署名ワークフロー用フィールド
+  supervisorSignature?: string; // 現場監督のスマホ手書き署名 (Base64 DataURL)
+  supervisorSignedAt?: string; // 監督サイン日時 (ISO string)
+  isApproved?: boolean; // 社長・管理者の承認フラグ
+  approvedBy?: string; // 承認者名 (例: 佐藤 健一)
+  approvedAt?: string; // 承認日時 (ISO string)
 }
 
 export interface WeatherForecastDay {
@@ -61,6 +68,11 @@ export interface Site {
   client_name?: string;
   work_description?: string;
   status: 'planning' | 'in_progress' | 'completed';
+
+  // 工期および備考フィールド
+  startDate?: string; // 工期開始日 YYYY-MM-DD
+  endDate?: string; // 工期終了日 YYYY-MM-DD
+  notes?: string; // 現場特記事項・備考
 }
 
 export interface RescueRequest {

@@ -12,6 +12,7 @@ import {
   deleteDoc,
   doc,
   addDoc,
+  updateDoc,
 } from 'firebase/firestore';
 
 const STORAGE_REPORTS_KEY = 'craft_daily_reports_v1';
@@ -45,6 +46,13 @@ const INITIAL_DEMO_REPORTS: DailyReport[] = [
 ・明日は渋谷スクエア現場の設備配線応援へ入線予定（8:30現着）。
 ・端子台カバー用予備ビスの補充手配をお願いします。`,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+    isApproved: true,
+    approvedBy: '佐藤 健一 (社長)',
+    approvedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    // サンプル監督サイン（簡易SVGデータURL）
+    supervisorSignature:
+      'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="50" viewBox="0 0 120 50"><path d="M10,35 Q30,5 50,30 T80,15 T110,40" stroke="%231e293b" stroke-width="3" fill="none" stroke-linecap="round"/><text x="45" y="42" font-size="12" font-family="sans-serif" fill="%23475569">Yamada</text></svg>',
+    supervisorSignedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
   },
   {
     id: 'report-demo-2',
@@ -71,6 +79,7 @@ const INITIAL_DEMO_REPORTS: DailyReport[] = [
 ・明日は引き続きA工区壁ボード貼りを継続。
 ・【至急手配】明後日分の耐火石膏ボード12.5mm（計120枚）の追加搬入をお願いします。`,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
+    isApproved: false,
   },
 ];
 
@@ -136,6 +145,11 @@ export function useDailyReports() {
               rawInput: data.rawInput,
               formattedReport: data.formattedReport,
               createdAt: data.createdAt,
+              supervisorSignature: data.supervisorSignature,
+              supervisorSignedAt: data.supervisorSignedAt,
+              isApproved: data.isApproved,
+              approvedBy: data.approvedBy,
+              approvedAt: data.approvedAt,
             });
           });
 
@@ -159,6 +173,82 @@ export function useDailyReports() {
       };
     }
   }, []);
+
+  // 社長・管理者の承認/承認取消
+  const approveReport = useCallback(
+    async (reportId: string, approvedBy: string, isApproved: boolean) => {
+      const approvedAt = isApproved ? new Date().toISOString() : undefined;
+      const approvedByName = isApproved ? approvedBy : undefined;
+
+      setReports((prev) => {
+        const next = prev.map((r) =>
+          r.id === reportId
+            ? { ...r, isApproved, approvedBy: approvedByName, approvedAt }
+            : r
+        );
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_REPORTS_KEY, JSON.stringify(next));
+        }
+        if (broadcastChannelRef.current) {
+          broadcastChannelRef.current.postMessage({
+            type: 'REPORTS_UPDATED',
+            reports: next,
+          });
+        }
+        return next;
+      });
+
+      if (isFirebaseConfigured && db) {
+        try {
+          await updateDoc(doc(db, 'daily_reports', reportId), {
+            isApproved,
+            approvedBy: approvedByName || null,
+            approvedAt: approvedAt || null,
+          });
+        } catch (e) {
+          console.error('Failed to update report approval in Firestore', e);
+        }
+      }
+    },
+    []
+  );
+
+  // 現場監督の手書き署名保存
+  const saveSupervisorSignature = useCallback(
+    async (reportId: string, signatureDataUrl: string) => {
+      const signedAt = new Date().toISOString();
+
+      setReports((prev) => {
+        const next = prev.map((r) =>
+          r.id === reportId
+            ? { ...r, supervisorSignature: signatureDataUrl, supervisorSignedAt: signedAt }
+            : r
+        );
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_REPORTS_KEY, JSON.stringify(next));
+        }
+        if (broadcastChannelRef.current) {
+          broadcastChannelRef.current.postMessage({
+            type: 'REPORTS_UPDATED',
+            reports: next,
+          });
+        }
+        return next;
+      });
+
+      if (isFirebaseConfigured && db) {
+        try {
+          await updateDoc(doc(db, 'daily_reports', reportId), {
+            supervisorSignature: signatureDataUrl,
+            supervisorSignedAt: signedAt,
+          });
+        } catch (e) {
+          console.error('Failed to save supervisor signature in Firestore', e);
+        }
+      }
+    },
+    []
+  );
 
   // 日報削除
   const deleteReport = useCallback(async (reportId: string) => {
@@ -188,5 +278,7 @@ export function useDailyReports() {
   return {
     reports,
     deleteReport,
+    approveReport,
+    saveSupervisorSignature,
   };
 }
