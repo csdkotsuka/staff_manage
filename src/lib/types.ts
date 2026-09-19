@@ -6,6 +6,7 @@ export interface Staff {
   role: string;
   phone: string;
   email?: string;
+  isAdmin?: boolean;
   avatar_color: string;
   status: StaffStatus;
   current_site_name: string;

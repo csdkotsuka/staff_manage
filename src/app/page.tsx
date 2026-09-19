@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useStaffStatus } from '@/hooks/useStaffStatus';
-import { INITIAL_SITES } from '@/lib/mockData';
+import { useSites } from '@/hooks/useSites';
 import { Staff, StaffStatus } from '@/lib/types';
 import { Header } from '@/components/Header';
 import { MapWrapper } from '@/components/MapWrapper';
@@ -13,6 +13,7 @@ import { GroupChat } from '@/components/GroupChat';
 import { AuthModal } from '@/components/AuthModal';
 import { MyPage } from '@/components/MyPage';
 import { DailyReportModal } from '@/components/DailyReportModal';
+import { SiteManagementModal } from '@/components/SiteManagementModal';
 import {
   Bell,
   MapPin,
@@ -38,6 +39,9 @@ export default function Home() {
     lastNotification,
   } = useStaffStatus();
 
+  // 現場データのリアルタイム管理
+  const { sites, addSite, updateSite, deleteSite } = useSites();
+
   // 画面ビュー切り替え ('mypage' または 'main')
   const [activeView, setActiveView] = useState<'mypage' | 'main'>('mypage');
 
@@ -46,6 +50,7 @@ export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
 
   // ログイン状態
   const [isLoggedIn, setIsLoggedIn] = useState(true); // 初期状態で操作可能な社員にログイン済み扱い
@@ -143,6 +148,7 @@ export default function Home() {
             onOpenMainBoard={() => setActiveView('main')}
             onOpenChat={() => setIsChatOpen(true)}
             onOpenDailyReport={() => setIsReportModalOpen(true)}
+            onOpenSiteManagement={() => setIsSiteModalOpen(true)}
             onLogout={handleLogout}
           />
         )}
@@ -219,7 +225,7 @@ export default function Home() {
               <div className="h-[340px] sm:h-[420px] w-full relative">
                 <MapWrapper
                   staffs={staffs}
-                  sites={INITIAL_SITES}
+                  sites={sites}
                   currentStaffId={currentStaffId}
                   focusCoord={focusCoord}
                   targetRescueCoord={targetRescueCoord}
@@ -270,10 +276,10 @@ export default function Home() {
             <section className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-3">
               <h3 className="font-bold text-xs text-slate-300 flex items-center gap-1.5 uppercase tracking-wider">
                 <Building2 className="w-4 h-4 text-amber-400" />
-                本日稼働中の現場一覧（全{INITIAL_SITES.length}箇所）
+                本日稼働中の現場一覧（全{sites.length}箇所）
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {INITIAL_SITES.map((site) => (
+                {sites.map((site) => (
                   <div
                     key={site.id}
                     className="bg-slate-950/60 p-3 rounded-lg border border-slate-800/80 text-xs flex flex-col justify-between"
@@ -330,6 +336,16 @@ export default function Home() {
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         currentStaff={currentStaff}
+      />
+
+      {/* 管理者用現場管理モーダル */}
+      <SiteManagementModal
+        isOpen={isSiteModalOpen}
+        onClose={() => setIsSiteModalOpen(false)}
+        sites={sites}
+        onAddSite={addSite}
+        onUpdateSite={updateSite}
+        onDeleteSite={deleteSite}
       />
 
       {/* フッター */}

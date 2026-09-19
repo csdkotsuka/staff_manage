@@ -40,6 +40,7 @@ export const INITIAL_STAFFS: Staff[] = [
     role: '統括・現場監督',
     phone: '090-1111-2222',
     email: 'sato@craftsync.local',
+    isAdmin: true,
     avatar_color: '#EF4444',
     status: 'available',
     current_site_name: '待機中（本社事務所）',

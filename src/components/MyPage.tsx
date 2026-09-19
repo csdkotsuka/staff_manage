@@ -35,6 +35,7 @@ interface MyPageProps {
   onOpenMainBoard: () => void;
   onOpenChat: () => void;
   onOpenDailyReport: () => void;
+  onOpenSiteManagement?: () => void;
   onLogout: () => void;
 }
 
@@ -44,6 +45,7 @@ export const MyPage: React.FC<MyPageProps> = ({
   onOpenMainBoard,
   onOpenChat,
   onOpenDailyReport,
+  onOpenSiteManagement,
   onLogout,
 }) => {
   const [note, setNote] = useState(currentStaff.status_note || '');
@@ -74,6 +76,13 @@ export const MyPage: React.FC<MyPageProps> = ({
     currentStaff.current_site_name.includes(s.name.substring(0, 4))
   );
 
+  // 管理者判定（社長、統括、またはisAdminフラグ）
+  const isAdmin = Boolean(
+    currentStaff.isAdmin ||
+    currentStaff.role.includes('社長') ||
+    currentStaff.role.includes('統括')
+  );
+
   return (
     <div className="max-w-2xl mx-auto p-3 sm:p-5 space-y-4 animate-in fade-in duration-200">
       {/* 1. マイプロフィールヘッダー */}
@@ -97,6 +106,11 @@ export const MyPage: React.FC<MyPageProps> = ({
                 <span className="text-[11px] bg-slate-800 text-slate-300 font-bold px-2 py-0.5 rounded-full border border-slate-700">
                   {currentStaff.role}
                 </span>
+                {isAdmin && (
+                  <span className="text-[10px] bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/40">
+                    🛡️ 管理者
+                  </span>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 mt-1">
                 <span className="flex items-center gap-1">
@@ -309,6 +323,38 @@ export const MyPage: React.FC<MyPageProps> = ({
           <span>本日の日報を作成・AI校正する</span>
         </button>
       </div>
+
+      {/* 6. 管理者専用メニュー（現場一覧の追加・編集・削除） */}
+      {isAdmin && onOpenSiteManagement && (
+        <div className="bg-slate-900/90 border border-sky-500/30 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/30">
+                <Building2 className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-slate-100 flex items-center gap-1.5">
+                  稼働中現場の管理・追加・編集
+                  <span className="text-[10px] bg-sky-950 text-sky-400 font-bold px-1.5 py-0.2 rounded border border-sky-800">
+                    管理者専用
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  全社の地図ピンや今日の現場一覧データを追加・編集
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={onOpenSiteManagement}
+            className="w-full bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-sky-300 border border-sky-500/30 font-black p-3.5 rounded-xl text-xs flex items-center justify-center gap-2 transition active:scale-98 shadow"
+          >
+            <Building2 className="w-4 h-4" />
+            <span>現場一覧を開いて追加・編集・削除する</span>
+          </button>
+        </div>
+      )}
 
       {/* 5. 画面切り替え大ボタン（全体ボードへ / チャットを開く） */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
