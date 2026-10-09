@@ -15,6 +15,7 @@ import {
   Plus,
   CalendarDays,
   FileSpreadsheet,
+  Download,
 } from 'lucide-react';
 
 // カラーテーマ定義
@@ -160,7 +161,6 @@ export const IN_PROGRESS_PALETTES: SiteColorTheme[] = [
 ];
 
 // 現場ステータスおよびIDに応じて色テーマを取得
-// 過去: 一律グレー、未来: 一律スカイブルー、現在進行形: 現場ごとに異なる色
 export const getSiteColorTheme = (site: Site): SiteColorTheme => {
   if (site.status === 'completed') {
     return PAST_SITE_THEME;
@@ -219,12 +219,9 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
   // カレンダーの表示月（初期値: 現在年月）
   const [currentDate, setCurrentDate] = useState(() => new Date());
   // 表示モード ('site-calendar': 現場工程月間カレンダー, 'list': 工期一覧リスト)
-  // ※ Googleカレンダー公式埋め込み表示はご要望に基づき撤廃
   const [viewMode, setViewMode] = useState<'site-calendar' | 'list'>('site-calendar');
   // 選択中の現場（詳細モーダル用）
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
-  // ステータスフィルター
-  const [statusFilter, setStatusFilter] = useState<'all' | 'in_progress' | 'planning' | 'completed'>('all');
   // ホバーまたはハイライト中の現場ID
   const [hoveredSiteId, setHoveredSiteId] = useState<string | null>(null);
 
@@ -266,6 +263,61 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
     }
 
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}${datesParam}`;
+  };
+
+  // Googleカレンダー一括投入用 iCalendar (.ics) ファイルの生成・ダウンロード
+  const handleDownloadIcs = () => {
+    const eventsWithDates = sites.filter((s) => s.startDate && s.endDate);
+    if (eventsWithDates.length === 0) {
+      alert('工期が設定された現場がありません');
+      return;
+    }
+
+    let icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//CraftSync//Site Calendar//JA',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'X-WR-CALNAME:現場NOW 工期カレンダー',
+      'X-WR-TIMEZONE:Asia/Tokyo',
+    ];
+
+    eventsWithDates.forEach((site) => {
+      const sDate = site.startDate!.replace(/-/g, '');
+      // 終日イベント終了日は+1日
+      const eObj = new Date(site.endDate!);
+      eObj.setDate(eObj.getDate() + 1);
+      const eY = eObj.getFullYear();
+      const eM = String(eObj.getMonth() + 1).padStart(2, '0');
+      const eD = String(eObj.getDate()).padStart(2, '0');
+      const eDate = `${eY}${eM}${eD}`;
+
+      const desc = `工種: ${site.work_description || '一般施工'}\\n元請: ${site.client_name || '未設定'}\\n備考: ${site.notes || 'なし'}`;
+
+      icsContent.push(
+        'BEGIN:VEVENT',
+        `UID:${site.id}-${Date.now()}@craftsync.local`,
+        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
+        `DTSTART;VALUE=DATE:${sDate}`,
+        `DTEND;VALUE=DATE:${eDate}`,
+        `SUMMARY:【現場工期】${site.name}`,
+        `DESCRIPTION:${desc}`,
+        `LOCATION:${site.address || ''}`,
+        `STATUS:CONFIRMED`,
+        'END:VEVENT'
+      );
+    });
+
+    icsContent.push('END:VCALENDAR');
+
+    const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute('download', `現場工期一括取込_${year}年${month + 1}月.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // カレンダーグリッドの日付計算（42枠 = 6週 × 7日）
@@ -330,27 +382,6 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
     return days;
   }, [year, month]);
 
-  // フィルタリングされた現場
-  const filteredSites = useMemo(() => {
-    return sites.filter((site) => {
-      if (statusFilter === 'all') return true;
-      return site.status === statusFilter;
-    });
-  }, [sites, statusFilter]);
-
-  // 表示中の月に関わる現在進行形（施工中）の現場（カラー色分け凡例用）
-  const activeMonthInProgressSites = useMemo(() => {
-    const monthStartStr = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-    const lastDay = new Date(year, month + 1, 0).getDate();
-    const monthEndStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-
-    return sites.filter((site) => {
-      if (site.status !== 'in_progress') return false;
-      if (!site.startDate || !site.endDate) return false;
-      return site.startDate <= monthEndStr && site.endDate >= monthStartStr;
-    });
-  }, [sites, year, month]);
-
   // 週ごとのスパンバー（日またぎ期間バー）およびスロット（段）計算
   const calendarWeeks = useMemo<CalendarWeek[]>(() => {
     const weeks: CalendarWeek[] = [];
@@ -361,7 +392,7 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
       const weekEndStr = weekDays[6].dateStr;
 
       // この週の期間（weekStartStr 〜 weekEndStr）と重複する現場
-      const intersectingSites = filteredSites.filter((site) => {
+      const intersectingSites = sites.filter((site) => {
         if (!site.startDate || !site.endDate) return false;
         return site.startDate <= weekEndStr && site.endDate >= weekStartStr;
       });
@@ -448,7 +479,7 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
     }
 
     return weeks;
-  }, [calendarDays, filteredSites]);
+  }, [calendarDays, sites]);
 
   const getStatusBadge = (status: Site['status']) => {
     switch (status) {
@@ -456,19 +487,19 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
         return {
           bg: 'bg-slate-100 text-slate-700 border-slate-300',
           dot: 'bg-slate-400',
-          label: '過去完了現場（一律グレー）',
+          label: '過去完了現場',
         };
       case 'in_progress':
         return {
           bg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
           dot: 'bg-emerald-500',
-          label: '施工中現場（現場ごと色分け）',
+          label: '施工中現場',
         };
       case 'planning':
         return {
           bg: 'bg-sky-50 text-sky-800 border-sky-200',
           dot: 'bg-sky-500',
-          label: '着工予定現場（一律スカイブルー）',
+          label: '着工予定現場',
         };
     }
   };
@@ -476,35 +507,40 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
   return (
     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
       {/* 1. カレンダーヘッダー */}
-      <div className="p-3.5 sm:p-5 border-b border-slate-200 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-sm">
+      <div className="p-3 sm:p-4 border-b border-slate-200 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-sm">
             <CalendarIcon className="w-5 h-5 text-slate-950" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-black text-slate-900">
-                現場工程・月間カレンダー
-              </h2>
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 flex items-center gap-1">
-                施工中を個別色分け
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              開始日〜終了日を横断する帯バーで表示。施工中の現場はそれぞれ異なる色で識別できます
+            <h2 className="text-sm sm:text-base font-black text-slate-900 leading-tight">
+              現場工程・月間カレンダー
+            </h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              各現場の工期を帯バー表示。施工中現場は固有色で識別できます
             </p>
           </div>
         </div>
 
-        {/* 右側アクション：現場追加 & Googleカレンダー直接表示 */}
-        <div className="flex items-center gap-2">
+        {/* 右側アクション：Googleカレンダー投入 & 現場追加 & Google開く */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Googleカレンダー一括投入ボタン (.ics) */}
+          <button
+            onClick={handleDownloadIcs}
+            className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg border border-blue-200 transition shadow-xs flex items-center gap-1.5 active:scale-95"
+            title="Googleカレンダーに一括で取り込めるファイル(.ics)をダウンロード"
+          >
+            <Download className="w-3.5 h-3.5 text-blue-600" />
+            <span>Googleカレンダー一括取込 (.ics)</span>
+          </button>
+
           {onOpenSiteManagement && (
             <button
               onClick={onOpenSiteManagement}
-              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-1.5 active:scale-95"
+              className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-lg transition shadow-xs flex items-center gap-1 active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>現場工期を登録</span>
+              <span>現場登録</span>
             </button>
           )}
 
@@ -512,339 +548,213 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
             href={googleCalendarDirectUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-lg border border-slate-300 transition shadow-sm flex items-center gap-1.5"
-            title="Googleカレンダーアプリ・ブラウザで直接開く"
+            className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-lg border border-slate-300 transition shadow-xs flex items-center gap-1"
+            title="Googleカレンダーアプリ・ブラウザで開く"
           >
             <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
-            <span className="hidden sm:inline">Googleで開く</span>
+            <span>Googleで開く</span>
           </a>
         </div>
       </div>
 
-      {/* 2. ビュー切り替えタブ & 月送りナビゲーション */}
-      <div className="px-3.5 sm:px-5 py-3 border-b border-slate-200 bg-white flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        {/* ビューモードタブ（Google埋め込みを廃止し、工程カレンダーと一覧リストの2種） */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl w-fit border border-slate-200">
+      {/* 2. ビュー切り替えタブ & 月送りナビゲーション（余分な絞り込みボタンや凡例テキストは完全撤廃） */}
+      <div className="px-3 sm:px-4 py-2 border-b border-slate-200 bg-white flex items-center justify-between gap-2">
+        {/* ビューモードタブ */}
+        <div className="flex items-center bg-slate-100 p-0.5 rounded-lg w-fit border border-slate-200">
           <button
             onClick={() => setViewMode('site-calendar')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-md text-xs font-bold transition flex items-center gap-1.5 ${
               viewMode === 'site-calendar'
-                ? 'bg-white text-slate-900 shadow-sm'
+                ? 'bg-white text-slate-900 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <CalendarDays className="w-3.5 h-3.5 text-amber-500" />
-            <span>現場工程月間カレンダー</span>
+            <span>月間カレンダー</span>
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-md text-xs font-bold transition flex items-center gap-1.5 ${
               viewMode === 'list'
-                ? 'bg-white text-slate-900 shadow-sm'
+                ? 'bg-white text-slate-900 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-            <span>工期一覧リスト（{sites.length}件）</span>
+            <span>工期一覧リスト ({sites.length})</span>
           </button>
         </div>
 
-        {/* 月送りナビゲーション（工程カレンダー表示時） */}
+        {/* 月送りナビゲーション（シンプルに配置） */}
         {viewMode === 'site-calendar' && (
-          <div className="flex items-center justify-between sm:justify-end gap-2.5">
-            {/* ステータスフィルター */}
-            <div className="flex items-center gap-1 text-xs">
-              <span className="text-slate-500 text-[11px] hidden sm:inline mr-1">絞込:</span>
-              <button
-                onClick={() => setStatusFilter('all')}
-                className={`px-2 py-1 rounded text-[11px] font-bold transition ${
-                  statusFilter === 'all'
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                全{sites.length}件
-              </button>
-              <button
-                onClick={() => setStatusFilter('in_progress')}
-                className={`px-2 py-1 rounded text-[11px] font-bold transition ${
-                  statusFilter === 'in_progress'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                }`}
-              >
-                施工中のみ
-              </button>
-              <button
-                onClick={() => setStatusFilter('planning')}
-                className={`px-2 py-1 rounded text-[11px] font-bold transition ${
-                  statusFilter === 'planning'
-                    ? 'bg-sky-600 text-white'
-                    : 'bg-sky-50 text-sky-700 hover:bg-sky-100'
-                }`}
-              >
-                着工予定
-              </button>
-              <button
-                onClick={() => setStatusFilter('completed')}
-                className={`px-2 py-1 rounded text-[11px] font-bold transition ${
-                  statusFilter === 'completed'
-                    ? 'bg-slate-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                過去完了
-              </button>
-            </div>
-
-            <div className="h-4 w-px bg-slate-300 hidden sm:block" />
-
-            {/* 前月・今月・次月ボタン */}
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={handleToday}
-                className="px-2.5 py-1 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-300 transition"
-              >
-                今月
-              </button>
-              <button
-                onClick={handlePrevMonth}
-                className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition"
-                title="前月へ"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <span className="text-sm font-black text-slate-900 min-w-[100px] text-center">
-                {year}年 {month + 1}月
-              </span>
-              <button
-                onClick={handleNextMonth}
-                className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition"
-                title="次月へ"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleToday}
+              className="px-2 py-1 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md border border-slate-300 transition"
+            >
+              今月
+            </button>
+            <button
+              onClick={handlePrevMonth}
+              className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition"
+              title="前月へ"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-xs sm:text-sm font-black text-slate-900 min-w-[90px] text-center">
+              {year}年 {month + 1}月
+            </span>
+            <button
+              onClick={handleNextMonth}
+              className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition"
+              title="次月へ"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         )}
       </div>
 
       {/* 3. メインビューエリア */}
-      <div className="p-3 sm:p-5 bg-white flex-1">
-        {/* A. 現場工程月間カレンダービュー（連続スパンバー表示） */}
+      <div className="p-2 sm:p-3 bg-white flex-1">
+        {/* A. 現場工程月間カレンダービュー（連続スパンバー表示・余白削減＆低くスマートに） */}
         {viewMode === 'site-calendar' && (
-          <div className="space-y-4">
-            {/* カレンダー凡例（レジェンド）：過去・未来は同一色、施工中は各現場ごとに個別色 */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                  現場の期間バー表示ルール（過去・未来は同一色、施工中は現場ごとに個別色）
-                </span>
-                <span className="text-[11px] text-slate-500 hidden sm:inline">
-                  ※バーをクリックすると現場詳細が開きます
-                </span>
-              </div>
-
-              {/* 区分まとめ */}
-              <div className="flex flex-wrap items-center gap-3 text-xs pt-1 border-t border-slate-200/80">
-                {/* 施工中現場（個別色分け） */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[11px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
-                    施工中（個別色）:
-                  </span>
-                  {activeMonthInProgressSites.map((site) => {
-                    const theme = getSiteColorTheme(site);
-                    const isHovered = hoveredSiteId === site.id;
-                    return (
-                      <button
-                        key={site.id}
-                        onClick={() => setSelectedSite(site)}
-                        onMouseEnter={() => setHoveredSiteId(site.id)}
-                        onMouseLeave={() => setHoveredSiteId(null)}
-                        className={`text-xs px-2.5 py-1 rounded-md border transition-all flex items-center gap-1.5 font-bold ${
-                          theme.badgeBg
-                        } ${theme.badgeText} ${
-                          isHovered
-                            ? 'ring-2 ring-slate-800 scale-105 shadow-sm'
-                            : 'border-slate-200 hover:shadow-xs'
-                        }`}
-                        title={`${site.name} (${site.startDate} 〜 ${site.endDate})`}
-                      >
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${theme.dot}`} />
-                        <span className="truncate max-w-[140px] sm:max-w-[180px]">{site.name}</span>
-                        <span className="text-[10px] opacity-75 font-normal">
-                          ({site.startDate?.slice(5)}〜{site.endDate?.slice(5)})
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="h-4 w-px bg-slate-300 hidden md:block" />
-
-                {/* 過去現場（一律グレー） */}
-                <div className="flex items-center gap-1.5 text-xs">
-                  <span className="text-[11px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
-                    過去完了:
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300 font-bold flex items-center gap-1 text-[11px]">
-                    <span className="w-2 h-2 rounded-full bg-slate-500" />
-                    一律グレー色
-                  </span>
-                </div>
-
-                {/* 未来現場（一律スカイブルー） */}
-                <div className="flex items-center gap-1.5 text-xs">
-                  <span className="text-[11px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
-                    着工予定:
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-300 font-bold flex items-center gap-1 text-[11px]">
-                    <span className="w-2 h-2 rounded-full bg-sky-500" />
-                    一律スカイブルー色
-                  </span>
-                </div>
-              </div>
+          <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-xs">
+            {/* 曜日ヘッダー */}
+            <div className="grid grid-cols-7 bg-slate-100 border-b border-slate-200 text-center text-xs font-bold text-slate-700">
+              <div className="py-1.5 text-rose-600 bg-rose-50/30">日</div>
+              <div className="py-1.5">月</div>
+              <div className="py-1.5">火</div>
+              <div className="py-1.5">水</div>
+              <div className="py-1.5">木</div>
+              <div className="py-1.5">金</div>
+              <div className="py-1.5 text-blue-600 bg-blue-50/30">土</div>
             </div>
 
-            {/* カレンダーグリッドコンテナ */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
-              {/* 曜日ヘッダー */}
-              <div className="grid grid-cols-7 bg-slate-100 border-b border-slate-200 text-center text-xs font-bold text-slate-700">
-                <div className="py-2.5 text-rose-600 bg-rose-50/30">日</div>
-                <div className="py-2.5">月</div>
-                <div className="py-2.5">火</div>
-                <div className="py-2.5">水</div>
-                <div className="py-2.5">木</div>
-                <div className="py-2.5">金</div>
-                <div className="py-2.5 text-blue-600 bg-blue-50/30">土</div>
-              </div>
+            {/* 週ごとの行（6行・高さを低く、バーの余白を詰める） */}
+            <div className="divide-y divide-slate-150">
+              {calendarWeeks.map((week, weekIdx) => {
+                // スロット数に応じて週の高さを計算（低く設定: 最低76px）
+                const rowHeight = Math.max(76, 26 + week.maxSlots * 22 + 6);
 
-              {/* 週ごとの行（6行） */}
-              <div className="divide-y divide-slate-200">
-                {calendarWeeks.map((week, weekIdx) => {
-                  // スロット数に応じて週の高さを動的に確保（最低 100px、バーが多い場合は拡張）
-                  const rowHeight = Math.max(100, 34 + week.maxSlots * 28 + 10);
+                return (
+                  <div
+                    key={weekIdx}
+                    className="relative"
+                    style={{ minHeight: `${rowHeight}px` }}
+                  >
+                    {/* 下層：7日分のセルマス目背景 */}
+                    <div className="grid grid-cols-7 divide-x divide-slate-100 absolute inset-0">
+                      {week.days.map((day, dayIdx) => {
+                        const isSun = dayIdx === 0;
+                        const isSat = dayIdx === 6;
 
-                  return (
-                    <div
-                      key={weekIdx}
-                      className="relative"
-                      style={{ minHeight: `${rowHeight}px` }}
-                    >
-                      {/* 下層：7日分のセルマス目背景 */}
-                      <div className="grid grid-cols-7 divide-x divide-slate-100 absolute inset-0">
-                        {week.days.map((day, dayIdx) => {
-                          const isSun = dayIdx === 0;
-                          const isSat = dayIdx === 6;
-
-                          return (
-                            <div
-                              key={day.dateStr}
-                              className={`h-full p-1.5 flex flex-col justify-start transition ${
-                                !day.isCurrentMonth
-                                  ? 'bg-slate-50/60'
-                                  : isSun
-                                  ? 'bg-rose-50/15'
-                                  : isSat
-                                  ? 'bg-blue-50/15'
-                                  : 'bg-white'
-                              } ${day.isToday ? 'bg-amber-50/30 ring-2 ring-amber-400 ring-inset' : ''}`}
-                            >
-                              {/* 日付ラベル */}
-                              <div className="flex items-center justify-between">
-                                <span
-                                  className={`text-xs font-bold inline-flex items-center justify-center w-5 h-5 rounded-full ${
-                                    day.isToday
-                                      ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                                      : isSun
-                                      ? 'text-rose-600'
-                                      : isSat
-                                      ? 'text-blue-600'
-                                      : day.isCurrentMonth
-                                      ? 'text-slate-800'
-                                      : 'text-slate-400'
-                                  }`}
-                                >
-                                  {day.dayNumber}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* 上層：スパンバー（連続期間帯バー）描画レイヤー */}
-                      <div className="absolute inset-0 top-[28px] pointer-events-none">
-                        {week.spanBars.map((bar) => {
-                          const isHovered = hoveredSiteId === bar.site.id;
-                          const leftPercent = (bar.startIndex / 7) * 100;
-                          const widthPercent = (bar.span / 7) * 100;
-                          const topPx = bar.slot * 27 + 2;
-
-                          return (
-                            <button
-                              key={`${bar.site.id}-w${weekIdx}`}
-                              onClick={() => setSelectedSite(bar.site)}
-                              onMouseEnter={() => setHoveredSiteId(bar.site.id)}
-                              onMouseLeave={() => setHoveredSiteId(null)}
-                              style={{
-                                left: `calc(${leftPercent}% + 3px)`,
-                                width: `calc(${widthPercent}% - 6px)`,
-                                top: `${topPx}px`,
-                                height: '24px',
-                              }}
-                              className={`absolute pointer-events-auto z-10 flex items-center px-2 text-[11px] font-bold text-left transition-all shadow-xs border ${
-                                bar.theme.bg
-                              } ${bar.theme.text} ${bar.theme.border} ${
-                                bar.isStartOfSite ? 'rounded-l-md' : 'rounded-l-none border-l-0'
-                              } ${
-                                bar.isEndOfSite ? 'rounded-r-md' : 'rounded-r-none border-r-0'
-                              } ${
-                                isHovered
-                                  ? 'brightness-110 ring-2 ring-slate-900 scale-[1.01] shadow-md z-20'
-                                  : 'hover:brightness-105 hover:shadow-xs'
-                              }`}
-                              title={`${bar.site.name}\nステータス: ${
-                                bar.site.status === 'in_progress'
-                                  ? '施工中'
-                                  : bar.site.status === 'completed'
-                                  ? '完了現場'
-                                  : '着工予定'
-                              }\n工期: ${bar.site.startDate} 〜 ${bar.site.endDate}\n工種: ${
-                                bar.site.work_description || '一般施工'
-                              }`}
-                            >
-                              {/* 前週からの継続マーク */}
-                              {!bar.isStartOfSite && (
-                                <span className="mr-1 text-[10px] opacity-80 shrink-0 font-black">
-                                  ◀
-                                </span>
-                              )}
-
-                              {/* 現場名テキスト */}
-                              <span className="truncate flex-1 font-bold">
-                                {bar.site.name}
+                        return (
+                          <div
+                            key={day.dateStr}
+                            className={`h-full p-1 flex flex-col justify-start transition ${
+                              !day.isCurrentMonth
+                                ? 'bg-slate-50/60'
+                                : isSun
+                                ? 'bg-rose-50/15'
+                                : isSat
+                                ? 'bg-blue-50/15'
+                                : 'bg-white'
+                            } ${day.isToday ? 'bg-amber-50/30 ring-2 ring-amber-400 ring-inset' : ''}`}
+                          >
+                            {/* 日付ラベル */}
+                            <div className="flex items-center justify-between">
+                              <span
+                                className={`text-[11px] font-bold inline-flex items-center justify-center w-4.5 h-4.5 rounded-full ${
+                                  day.isToday
+                                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                                    : isSun
+                                    ? 'text-rose-600'
+                                    : isSat
+                                    ? 'text-blue-600'
+                                    : day.isCurrentMonth
+                                    ? 'text-slate-800'
+                                    : 'text-slate-400'
+                                }`}
+                              >
+                                {day.dayNumber}
                               </span>
-
-                              {/* 工期終了日の表示 または 次週への継続マーク */}
-                              {bar.isEndOfSite ? (
-                                <span className="ml-1 text-[9px] opacity-90 font-medium shrink-0 hidden sm:inline bg-black/20 px-1 rounded">
-                                  完工 {bar.site.endDate?.slice(5)}
-                                </span>
-                              ) : (
-                                <span className="ml-1 text-[10px] opacity-80 shrink-0 font-black">
-                                  ▶
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
+
+                    {/* 上層：スパンバー（連続期間帯バー・余白削減でスリム化） */}
+                    <div className="absolute inset-0 top-[23px] pointer-events-none">
+                      {week.spanBars.map((bar) => {
+                        const isHovered = hoveredSiteId === bar.site.id;
+                        const leftPercent = (bar.startIndex / 7) * 100;
+                        const widthPercent = (bar.span / 7) * 100;
+                        const topPx = bar.slot * 22 + 1;
+
+                        return (
+                          <button
+                            key={`${bar.site.id}-w${weekIdx}`}
+                            onClick={() => setSelectedSite(bar.site)}
+                            onMouseEnter={() => setHoveredSiteId(bar.site.id)}
+                            onMouseLeave={() => setHoveredSiteId(null)}
+                            style={{
+                              left: `calc(${leftPercent}% + 2px)`,
+                              width: `calc(${widthPercent}% - 4px)`,
+                              top: `${topPx}px`,
+                              height: '20px', // 高さをスリム化
+                            }}
+                            className={`absolute pointer-events-auto z-10 flex items-center px-1.5 text-[10px] font-bold text-left transition-all shadow-xs border ${
+                              bar.theme.bg
+                            } ${bar.theme.text} ${bar.theme.border} ${
+                              bar.isStartOfSite ? 'rounded-l-md' : 'rounded-l-none border-l-0'
+                            } ${
+                              bar.isEndOfSite ? 'rounded-r-md' : 'rounded-r-none border-r-0'
+                            } ${
+                              isHovered
+                                ? 'brightness-110 ring-2 ring-slate-900 scale-[1.01] shadow-md z-20'
+                                : 'hover:brightness-105 hover:shadow-xs'
+                            }`}
+                            title={`${bar.site.name}\nステータス: ${
+                              bar.site.status === 'in_progress'
+                                ? '施工中'
+                                : bar.site.status === 'completed'
+                                ? '完了現場'
+                                : '着工予定'
+                            }\n工期: ${bar.site.startDate} 〜 ${bar.site.endDate}\n工種: ${
+                              bar.site.work_description || '一般施工'
+                            }`}
+                          >
+                            {/* 前週からの継続マーク */}
+                            {!bar.isStartOfSite && (
+                              <span className="mr-0.5 text-[9px] opacity-80 shrink-0 font-black">
+                                ◀
+                              </span>
+                            )}
+
+                            {/* 現場名テキスト */}
+                            <span className="truncate flex-1 font-bold leading-tight">
+                              {bar.site.name}
+                            </span>
+
+                            {/* 工期終了日の表示 または 次週への継続マーク */}
+                            {bar.isEndOfSite ? (
+                              <span className="ml-1 text-[8.5px] opacity-90 font-medium shrink-0 hidden sm:inline bg-black/20 px-1 py-0.2 rounded">
+                                完 {bar.site.endDate?.slice(5)}
+                              </span>
+                            ) : (
+                              <span className="ml-0.5 text-[9px] opacity-80 shrink-0 font-black">
+                                ▶
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
