@@ -440,12 +440,11 @@ export default function Home() {
                   <StaffCard
                     key={staff.id}
                     staff={staff}
-                    isCurrentStaff={staff.id === currentStaffId}
-                    onStatusChange={(status, note) =>
-                      updateStatus(staff.id, status, undefined, note)
+                    isCurrentUser={staff.id === currentStaffId}
+                    onUpdateStatus={(staffId: string, status: StaffStatus, siteName?: string, note?: string) =>
+                      updateStatus(staffId, status, siteName, note)
                     }
-                    onFocusMap={() => handleFocusOnMap(staff.lat, staff.lng)}
-                    onSelectAsCurrent={() => setCurrentStaffId(staff.id)}
+                    onFocusOnMap={(lat: number, lng: number) => handleFocusOnMap(lat, lng)}
                   />
                 ))}
               </div>
@@ -460,10 +459,12 @@ export default function Home() {
         onClose={() => setIsRescueModalOpen(false)}
         staffs={staffs}
         onDispatchStaff={handleDispatchStaff}
-        onSetTargetRescueCoord={(lat, lng, title) => {
-          setTargetRescueCoord({ lat, lng, title });
-          setActiveView('main');
-          setFocusCoord({ lat, lng });
+        onPreviewLocation={(coord: { lat: number; lng: number; title: string } | null) => {
+          setTargetRescueCoord(coord);
+          if (coord) {
+            setActiveView('main');
+            setFocusCoord({ lat: coord.lat, lng: coord.lng });
+          }
         }}
       />
 
@@ -496,9 +497,10 @@ export default function Home() {
         isOpen={isReportListModalOpen}
         onClose={() => setIsReportListModalOpen(false)}
         reports={reports}
+        currentStaff={currentStaff}
         onDeleteReport={deleteReport}
         onApproveReport={approveReport}
-        onSaveSignature={saveSupervisorSignature}
+        onSaveSupervisorSignature={saveSupervisorSignature}
       />
 
       <AuthModal
