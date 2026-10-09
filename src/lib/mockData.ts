@@ -1,9 +1,57 @@
-import { Staff, Site } from './types';
+import { Staff, Site, Company } from './types';
 
 export const GOOGLE_CALENDAR_ID = 'c_8e848282a7a71d70787fa356d37c0add3badef159cea29d78e16dae1a09c2efc@group.calendar.google.com';
 
+// ── 【自社（Creative SD）管理者アカウント設定】 ──────────
+export const DEFAULT_SUPER_ADMIN = {
+  id: 'super-admin-1',
+  email: 'kotsuka@creativesd.net',
+  defaultPassword: 'ko1019',
+  name: '大塚 (Creative SD 管理者)',
+  role: 'super_admin' as const,
+};
+
+// ── 【初期登録建設会社（企業アカウント）】 ───────────────
+export const INITIAL_COMPANIES: Company[] = [
+  {
+    id: 'company-craftsync',
+    name: '株式会社 クラフトシンク建設',
+    address: '愛媛県松山市湊町4-11-2 クラフトビル3F',
+    phone: '089-911-2200',
+    presidentName: '佐藤 健一',
+    presidentEmail: 'sato@craftsync.local',
+    presidentPassword: 'sato',
+    createdAt: '2026-04-01',
+  },
+  {
+    id: 'company-iyo-densetsu',
+    name: '伊予電設工業 株式会社',
+    address: '愛媛県松山市三番町7-2-5',
+    phone: '089-945-8800',
+    presidentName: '伊予 浩二',
+    presidentEmail: 'iyo@densetsu-ehime.jp',
+    presidentPassword: 'iyo',
+    createdAt: '2026-06-15',
+  },
+];
+
+// 実行時の年月（今日の日時）を基準にして日付を動的に生成するヘルパー
+// これにより、カレンダーを表示した月（今月）に確実に現在進行形の現場が複数並びます
+const now = new Date();
+const currentY = now.getFullYear();
+const currentM = now.getMonth(); // 0-indexed
+
+// 年月日文字列 YYYY-MM-DD
+const getDateStr = (yearOffset: number, monthOffset: number, day: number): string => {
+  const d = new Date(currentY + yearOffset, currentM + monthOffset, day);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+};
+
 export const INITIAL_SITES: Site[] = [
-  // ── 【過去の現場（完了）】 ──────────────────────────
+  // ── 【過去の現場（完了）: 一律グレーで統一】 ──────────────────────────
   {
     id: 'site-past-1',
     name: '松山市大街道 商店街アーケードLED照明更新工事',
@@ -13,8 +61,8 @@ export const INITIAL_SITES: Site[] = [
     client_name: '伊予鉄グループ様',
     work_description: 'アーケード全灯LED化・配線改修・高所作業車施工',
     status: 'completed',
-    startDate: '2026-06-01',
-    endDate: '2026-07-31',
+    startDate: getDateStr(0, -3, 1),
+    endDate: getDateStr(0, -1, 15),
     notes: '夜間通行規制下での高所作業完了。完工検査および引き渡し済。',
   },
   {
@@ -26,8 +74,8 @@ export const INITIAL_SITES: Site[] = [
     client_name: '東温市役所 都市整備課様',
     work_description: 'グラウンド照明塔安定器交換・避雷針点検',
     status: 'completed',
-    startDate: '2026-07-15',
-    endDate: '2026-08-31',
+    startDate: getDateStr(0, -2, 10),
+    endDate: getDateStr(0, -1, 28),
     notes: '台風シーズン前の安全点検完了。竣工書類受領確認済。',
   },
   {
@@ -39,12 +87,12 @@ export const INITIAL_SITES: Site[] = [
     client_name: '四国物流サービス様',
     work_description: '鉄骨ブレース増設・躯体補強・配管移設',
     status: 'completed',
-    startDate: '2026-05-10',
-    endDate: '2026-09-15',
+    startDate: getDateStr(0, -4, 5),
+    endDate: getDateStr(0, -1, 5),
     notes: '荷役オペレーションを継続しながら無事故にて工期内完工。',
   },
 
-  // ── 【現在進行形の現場（施工中）】 ──────────────────
+  // ── 【現在進行形の現場（施工中）: 現場ごとに色分け】 ──────────────────
   {
     id: 'site-1',
     name: '松山市駅前 再開発ビル内装現場',
@@ -54,8 +102,8 @@ export const INITIAL_SITES: Site[] = [
     client_name: '大林組 四国支店様',
     work_description: '軽量鉄骨下地・耐火ボード貼り・空調配線',
     status: 'in_progress',
-    startDate: '2026-09-01',
-    endDate: '2026-11-30',
+    startDate: getDateStr(0, -1, 1),
+    endDate: getDateStr(0, 1, 20),
     notes: '市駅地下街からの資材搬入。朝8:00朝礼、ヘルメット顎紐・親綱使用を徹底。指定詰所は3Fです。',
   },
   {
@@ -67,8 +115,8 @@ export const INITIAL_SITES: Site[] = [
     client_name: '五洋建設様',
     work_description: '受変電設備更新・LED幹線配管工事',
     status: 'in_progress',
-    startDate: '2026-08-20',
-    endDate: '2026-10-31',
+    startDate: getDateStr(0, 0, 3),
+    endDate: getDateStr(0, 0, 26),
     notes: '営業中テナントあり。粉塵対策養生徹底。停電・騒音作業は夜間21:00以降のみ実施可。',
   },
   {
@@ -80,8 +128,8 @@ export const INITIAL_SITES: Site[] = [
     client_name: '住友重機械工業様',
     work_description: 'プラント配管溶接・高圧分電盤点検',
     status: 'in_progress',
-    startDate: '2026-09-10',
-    endDate: '2026-11-15',
+    startDate: getDateStr(0, -1, 15),
+    endDate: getDateStr(0, 1, 10),
     notes: '入門時に構内安全パスおよび資格証の提示必須。防塵マスクおよび耐油安全靴着用厳守。',
   },
   {
@@ -93,12 +141,12 @@ export const INITIAL_SITES: Site[] = [
     client_name: '大和ハウス工業 四国支社様',
     work_description: '店舗外灯配線・キュービクル設置・動力盤配管',
     status: 'in_progress',
-    startDate: '2026-10-01',
-    endDate: '2026-12-15',
+    startDate: getDateStr(0, 0, 10),
+    endDate: getDateStr(0, 2, 5),
     notes: '国道バイパス沿い搬入のため誘導員常駐。11月中間配線立会予定。',
   },
 
-  // ── 【未来の現場（計画中・着工予定）】 ──────────────
+  // ── 【未来の現場（計画中・着工予定）: 一律スカイブルーで統一】 ──────────────
   {
     id: 'site-future-1',
     name: '松山空港前 物流ハブセンター空調増設工事',
@@ -108,8 +156,8 @@ export const INITIAL_SITES: Site[] = [
     client_name: '西濃運輸 四国本部様',
     work_description: '大型パッケージエアコン新設・冷媒配管・電源引込',
     status: 'planning',
-    startDate: '2026-11-15',
-    endDate: '2027-01-31',
+    startDate: getDateStr(0, 1, 15),
+    endDate: getDateStr(0, 3, 20),
     notes: '空港制限区域隣接のため火気使用申請・入場ID申請を事前提出済み。',
   },
   {
@@ -121,9 +169,9 @@ export const INITIAL_SITES: Site[] = [
     client_name: '大王製紙様',
     work_description: '特高トランス交換・遮断器更新・年次法定点検連動',
     status: 'planning',
-    startDate: '2026-12-01',
-    endDate: '2027-02-28',
-    notes: '年末年始定修期間中の計画停電に合わせた集中集中工事。安全管理責任者常駐必須。',
+    startDate: getDateStr(0, 2, 1),
+    endDate: getDateStr(0, 4, 15),
+    notes: '定修期間中の計画停電に合わせた集中集中工事。安全管理責任者常駐必須。',
   },
   {
     id: 'site-future-3',
@@ -134,19 +182,21 @@ export const INITIAL_SITES: Site[] = [
     client_name: '南海放送開発様',
     work_description: '木造大規模建築内装仕上げ・意匠間接照明配線',
     status: 'planning',
-    startDate: '2027-01-15',
-    endDate: '2027-04-30',
-    notes: '2027年春オープン目標。南予エリア応援要員手配予定。',
+    startDate: getDateStr(0, 2, 20),
+    endDate: getDateStr(0, 5, 30),
+    notes: '南予エリア応援要員手配予定。地元建材使用。',
   },
 ];
 
 export const INITIAL_STAFFS: Staff[] = [
   {
     id: 'staff-1',
+    companyId: 'company-craftsync',
     name: '佐藤 健一 (社長)',
     role: '代表取締役・統括監理',
     phone: '089-911-2222',
-    email: 'sato@craftsync-ehime.jp',
+    email: 'sato@craftsync.local',
+    password: 'sato',
     isAdmin: true,
     avatar_color: '#EF4444',
     status: 'available',
@@ -158,10 +208,12 @@ export const INITIAL_STAFFS: Staff[] = [
   },
   {
     id: 'staff-2',
+    companyId: 'company-craftsync',
     name: '田中 裕介',
     role: '主任電気工事士',
     phone: '090-2222-3333',
-    email: 'tanaka@craftsync-ehime.jp',
+    email: 'tanaka@craftsync.local',
+    password: 'tanaka',
     isAdmin: false,
     avatar_color: '#3B82F6',
     status: 'working',
@@ -173,10 +225,12 @@ export const INITIAL_STAFFS: Staff[] = [
   },
   {
     id: 'staff-3',
+    companyId: 'company-craftsync',
     name: '高橋 大地',
     role: '内装・ボード工長',
     phone: '090-3333-4444',
-    email: 'takahashi@craftsync-ehime.jp',
+    email: 'takahashi@craftsync.local',
+    password: 'takahashi',
     isAdmin: false,
     avatar_color: '#10B981',
     status: 'working',
@@ -188,25 +242,29 @@ export const INITIAL_STAFFS: Staff[] = [
   },
   {
     id: 'staff-4',
+    companyId: 'company-craftsync',
     name: '渡辺 慎吾',
     role: '配管設備士',
     phone: '090-4444-5555',
-    email: 'watanabe@craftsync-ehime.jp',
+    email: 'watanabe@craftsync.local',
+    password: 'watanabe',
     isAdmin: false,
     avatar_color: '#F59E0B',
     status: 'moving',
-    current_site_name: '松山自動車道移動中（川内IC通過）',
+    current_site_name: '西条バイパス移動中',
     lat: 33.7915,
     lng: 132.9050,
-    status_note: '松山道順調。あと30分ほどで新居浜現場に現着予定です',
+    status_note: '資材積込完了。あと30分ほどで西条現場に現着予定です',
     updated_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
   },
   {
     id: 'staff-5',
+    companyId: 'company-craftsync',
     name: '伊藤 翼',
     role: '見習い・施工補佐',
     phone: '090-5555-6666',
-    email: 'ito@craftsync-ehime.jp',
+    email: 'ito@craftsync.local',
+    password: 'ito',
     isAdmin: false,
     avatar_color: '#8B5CF6',
     status: 'available',

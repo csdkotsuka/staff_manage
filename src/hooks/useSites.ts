@@ -14,7 +14,7 @@ import {
   setDoc,
 } from 'firebase/firestore';
 
-const STORAGE_SITES_KEY = 'craft_sites_cache_v2';
+const STORAGE_SITES_KEY = 'craft_sites_cache_v5';
 const BROADCAST_SITES_CHANNEL = 'craft_sites_sync_channel';
 
 export function useSites() {
@@ -28,14 +28,22 @@ export function useSites() {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          // キャッシュ内のデータが工期(startDate)を持っているかチェック
+          if (Array.isArray(parsed) && parsed.length >= INITIAL_SITES.length && parsed[0]?.startDate) {
             setSites(parsed);
+          } else {
+            // 古いキャッシュは最新の動的工期データで上書き
+            setSites(INITIAL_SITES);
+            localStorage.setItem(STORAGE_SITES_KEY, JSON.stringify(INITIAL_SITES));
           }
         } catch (e) {
           console.error('Failed to parse cached sites', e);
+          setSites(INITIAL_SITES);
+          localStorage.setItem(STORAGE_SITES_KEY, JSON.stringify(INITIAL_SITES));
         }
       } else {
         // 初期データを保存
+        setSites(INITIAL_SITES);
         localStorage.setItem(STORAGE_SITES_KEY, JSON.stringify(INITIAL_SITES));
       }
 

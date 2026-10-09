@@ -13,12 +13,11 @@ import {
   Building2,
   Layers,
   Plus,
-  Info,
   CalendarDays,
   FileSpreadsheet,
 } from 'lucide-react';
 
-// 現場ごとのカラーパレット定義（視認性が高く識別しやすい12色）
+// カラーテーマ定義
 export interface SiteColorTheme {
   id: string;
   name: string;
@@ -32,34 +31,63 @@ export interface SiteColorTheme {
   ring: string;
 }
 
-export const SITE_PALETTES: SiteColorTheme[] = [
+// ── 【過去の現場（完了）: すべて同一のスレートグレー色で統一】 ──
+export const PAST_SITE_THEME: SiteColorTheme = {
+  id: 'past-completed',
+  name: '完了現場',
+  bg: 'bg-slate-500',
+  hoverBg: 'hover:bg-slate-600',
+  border: 'border-slate-600',
+  text: 'text-white',
+  badgeBg: 'bg-slate-100',
+  badgeText: 'text-slate-700',
+  dot: 'bg-slate-500',
+  ring: 'ring-slate-400',
+};
+
+// ── 【未来の現場（着工予定）: すべて同一のスカイブルー色で統一】 ──
+export const FUTURE_SITE_THEME: SiteColorTheme = {
+  id: 'future-planning',
+  name: '着工予定',
+  bg: 'bg-sky-500',
+  hoverBg: 'hover:bg-sky-600',
+  border: 'border-sky-600',
+  text: 'text-white',
+  badgeBg: 'bg-sky-50',
+  badgeText: 'text-sky-700',
+  dot: 'bg-sky-500',
+  ring: 'ring-sky-400',
+};
+
+// ── 【現在進行形の現場（施工中）: 現場ごとに異なる鮮やかな個別色】 ──
+export const IN_PROGRESS_PALETTES: SiteColorTheme[] = [
   {
     id: 'blue',
-    name: 'ブルー',
+    name: '現場カラー: ブルー',
     bg: 'bg-blue-600',
     hoverBg: 'hover:bg-blue-700',
     border: 'border-blue-700',
     text: 'text-white',
     badgeBg: 'bg-blue-50',
-    badgeText: 'text-blue-700',
+    badgeText: 'text-blue-800',
     dot: 'bg-blue-500',
     ring: 'ring-blue-400',
   },
   {
     id: 'emerald',
-    name: 'エメラルド',
+    name: '現場カラー: エメラルド',
     bg: 'bg-emerald-600',
     hoverBg: 'hover:bg-emerald-700',
     border: 'border-emerald-700',
     text: 'text-white',
     badgeBg: 'bg-emerald-50',
-    badgeText: 'text-emerald-700',
+    badgeText: 'text-emerald-800',
     dot: 'bg-emerald-500',
     ring: 'ring-emerald-400',
   },
   {
     id: 'amber',
-    name: 'アンバーオレンジ',
+    name: '現場カラー: アンバー',
     bg: 'bg-amber-600',
     hoverBg: 'hover:bg-amber-700',
     border: 'border-amber-700',
@@ -71,123 +99,85 @@ export const SITE_PALETTES: SiteColorTheme[] = [
   },
   {
     id: 'violet',
-    name: 'バイオレット',
+    name: '現場カラー: バイオレット',
     bg: 'bg-violet-600',
     hoverBg: 'hover:bg-violet-700',
     border: 'border-violet-700',
     text: 'text-white',
     badgeBg: 'bg-violet-50',
-    badgeText: 'text-violet-700',
+    badgeText: 'text-violet-800',
     dot: 'bg-violet-500',
     ring: 'ring-violet-400',
   },
   {
     id: 'rose',
-    name: 'ローズ',
+    name: '現場カラー: ローズ',
     bg: 'bg-rose-600',
     hoverBg: 'hover:bg-rose-700',
     border: 'border-rose-700',
     text: 'text-white',
     badgeBg: 'bg-rose-50',
-    badgeText: 'text-rose-700',
+    badgeText: 'text-rose-800',
     dot: 'bg-rose-500',
     ring: 'ring-rose-400',
   },
   {
-    id: 'cyan',
-    name: 'シアン',
-    bg: 'bg-cyan-600',
-    hoverBg: 'hover:bg-cyan-700',
-    border: 'border-cyan-700',
-    text: 'text-white',
-    badgeBg: 'bg-cyan-50',
-    badgeText: 'text-cyan-700',
-    dot: 'bg-cyan-500',
-    ring: 'ring-cyan-400',
-  },
-  {
     id: 'teal',
-    name: 'ティール',
+    name: '現場カラー: ティール',
     bg: 'bg-teal-600',
     hoverBg: 'hover:bg-teal-700',
     border: 'border-teal-700',
     text: 'text-white',
     badgeBg: 'bg-teal-50',
-    badgeText: 'text-teal-700',
+    badgeText: 'text-teal-800',
     dot: 'bg-teal-500',
     ring: 'ring-teal-400',
   },
   {
-    id: 'indigo',
-    name: 'インディゴ',
-    bg: 'bg-indigo-600',
-    hoverBg: 'hover:bg-indigo-700',
-    border: 'border-indigo-700',
-    text: 'text-white',
-    badgeBg: 'bg-indigo-50',
-    badgeText: 'text-indigo-700',
-    dot: 'bg-indigo-500',
-    ring: 'ring-indigo-400',
-  },
-  {
-    id: 'fuchsia',
-    name: 'フューシャ',
-    bg: 'bg-fuchsia-600',
-    hoverBg: 'hover:bg-fuchsia-700',
-    border: 'border-fuchsia-700',
-    text: 'text-white',
-    badgeBg: 'bg-fuchsia-50',
-    badgeText: 'text-fuchsia-700',
-    dot: 'bg-fuchsia-500',
-    ring: 'ring-fuchsia-400',
-  },
-  {
-    id: 'lime',
-    name: 'ライムグリーン',
-    bg: 'bg-lime-700',
-    hoverBg: 'hover:bg-lime-800',
-    border: 'border-lime-800',
-    text: 'text-white',
-    badgeBg: 'bg-lime-50',
-    badgeText: 'text-lime-800',
-    dot: 'bg-lime-600',
-    ring: 'ring-lime-400',
-  },
-  {
     id: 'orange',
-    name: 'オレンジ',
+    name: '現場カラー: オレンジ',
     bg: 'bg-orange-600',
     hoverBg: 'hover:bg-orange-700',
     border: 'border-orange-700',
     text: 'text-white',
     badgeBg: 'bg-orange-50',
-    badgeText: 'text-orange-700',
+    badgeText: 'text-orange-800',
     dot: 'bg-orange-500',
     ring: 'ring-orange-400',
   },
   {
-    id: 'slate',
-    name: 'スレート',
-    bg: 'bg-slate-700',
-    hoverBg: 'hover:bg-slate-800',
-    border: 'border-slate-800',
+    id: 'indigo',
+    name: '現場カラー: インディゴ',
+    bg: 'bg-indigo-600',
+    hoverBg: 'hover:bg-indigo-700',
+    border: 'border-indigo-700',
     text: 'text-white',
-    badgeBg: 'bg-slate-100',
-    badgeText: 'text-slate-800',
-    dot: 'bg-slate-600',
-    ring: 'ring-slate-400',
+    badgeBg: 'bg-indigo-50',
+    badgeText: 'text-indigo-800',
+    dot: 'bg-indigo-500',
+    ring: 'ring-indigo-400',
   },
 ];
 
-// 現場IDに基づき安定した色テーマを割り当て
-export const getSiteColorTheme = (siteId: string): SiteColorTheme => {
+// 現場ステータスおよびIDに応じて色テーマを取得
+// 過去: 一律グレー、未来: 一律スカイブルー、現在進行形: 現場ごとに異なる色
+export const getSiteColorTheme = (site: Site): SiteColorTheme => {
+  if (site.status === 'completed') {
+    return PAST_SITE_THEME;
+  }
+  if (site.status === 'planning') {
+    return FUTURE_SITE_THEME;
+  }
+
+  // in_progress の現場: 現場IDのハッシュで安定して色分け
   let hash = 0;
-  for (let i = 0; i < siteId.length; i++) {
-    hash = (hash << 5) - hash + siteId.charCodeAt(i);
+  const idStr = site.id || site.name;
+  for (let i = 0; i < idStr.length; i++) {
+    hash = (hash << 5) - hash + idStr.charCodeAt(i);
     hash |= 0;
   }
-  const index = Math.abs(hash) % SITE_PALETTES.length;
-  return SITE_PALETTES[index];
+  const index = Math.abs(hash) % IN_PROGRESS_PALETTES.length;
+  return IN_PROGRESS_PALETTES[index];
 };
 
 interface DayCell {
@@ -228,9 +218,10 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
 }) => {
   // カレンダーの表示月（初期値: 現在年月）
   const [currentDate, setCurrentDate] = useState(() => new Date());
-  // 表示モード ('site-calendar': 現場工程月間カレンダー, 'google-embed': Googleカレンダー埋め込み, 'list': 工期一覧)
-  const [viewMode, setViewMode] = useState<'site-calendar' | 'google-embed' | 'list'>('site-calendar');
-  // 選択中の現場（詳細モーダル/ポップアップ用）
+  // 表示モード ('site-calendar': 現場工程月間カレンダー, 'list': 工期一覧リスト)
+  // ※ Googleカレンダー公式埋め込み表示はご要望に基づき撤廃
+  const [viewMode, setViewMode] = useState<'site-calendar' | 'list'>('site-calendar');
+  // 選択中の現場（詳細モーダル用）
   const [selectedSite, setSelectedSite] = useState<Site | null>(null);
   // ステータスフィルター
   const [statusFilter, setStatusFilter] = useState<'all' | 'in_progress' | 'planning' | 'completed'>('all');
@@ -250,12 +241,6 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
   const handleToday = () => {
     setCurrentDate(new Date());
   };
-
-  // Googleカレンダー埋め込みURL
-  const googleCalendarEmbedUrl = useMemo(() => {
-    const encodedId = encodeURIComponent(GOOGLE_CALENDAR_ID);
-    return `https://calendar.google.com/calendar/embed?src=${encodedId}&ctz=Asia%2FTokyo&hl=ja&mode=MONTH&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=0&bgcolor=%23ffffff`;
-  }, []);
 
   // Googleカレンダーで直接開くURL
   const googleCalendarDirectUrl = useMemo(() => {
@@ -353,17 +338,18 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
     });
   }, [sites, statusFilter]);
 
-  // 表示中の月（月初〜月末）に関わる現場リスト（凡例用）
-  const activeMonthSites = useMemo(() => {
+  // 表示中の月に関わる現在進行形（施工中）の現場（カラー色分け凡例用）
+  const activeMonthInProgressSites = useMemo(() => {
     const monthStartStr = `${year}-${String(month + 1).padStart(2, '0')}-01`;
     const lastDay = new Date(year, month + 1, 0).getDate();
     const monthEndStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-    return filteredSites.filter((site) => {
+    return sites.filter((site) => {
+      if (site.status !== 'in_progress') return false;
       if (!site.startDate || !site.endDate) return false;
       return site.startDate <= monthEndStr && site.endDate >= monthStartStr;
     });
-  }, [filteredSites, year, month]);
+  }, [sites, year, month]);
 
   // 週ごとのスパンバー（日またぎ期間バー）およびスロット（段）計算
   const calendarWeeks = useMemo<CalendarWeek[]>(() => {
@@ -380,8 +366,10 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
         return site.startDate <= weekEndStr && site.endDate >= weekStartStr;
       });
 
-      // 開始日が早い順、同じなら期間が長い順にソート（安定した配置のため）
+      // 並び順：施工中（in_progress）を最優先にし、開始日昇順、期間降順
       const sortedSites = [...intersectingSites].sort((a, b) => {
+        if (a.status === 'in_progress' && b.status !== 'in_progress') return -1;
+        if (a.status !== 'in_progress' && b.status === 'in_progress') return 1;
         const aStart = a.startDate || '';
         const bStart = b.startDate || '';
         if (aStart !== bStart) return aStart.localeCompare(bStart);
@@ -411,7 +399,7 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
 
         return {
           site,
-          theme: getSiteColorTheme(site.id),
+          theme: getSiteColorTheme(site),
           startIndex,
           endIndex,
           span,
@@ -468,19 +456,19 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
         return {
           bg: 'bg-slate-100 text-slate-700 border-slate-300',
           dot: 'bg-slate-400',
-          label: '完了現場',
+          label: '過去完了現場（一律グレー）',
         };
       case 'in_progress':
         return {
           bg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
           dot: 'bg-emerald-500',
-          label: '施工中',
+          label: '施工中現場（現場ごと色分け）',
         };
       case 'planning':
         return {
           bg: 'bg-sky-50 text-sky-800 border-sky-200',
           dot: 'bg-sky-500',
-          label: '着工予定',
+          label: '着工予定現場（一律スカイブルー）',
         };
     }
   };
@@ -496,14 +484,14 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-black text-slate-900">
-                現場工期・月間カレンダー
+                現場工程・月間カレンダー
               </h2>
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold border border-blue-200 flex items-center gap-1">
-                Googleカレンダー連携
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold border border-emerald-200 flex items-center gap-1">
+                施工中を個別色分け
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              開始日〜終了日を連続した帯バーで表示。同日に複数の現場があっても色分けで一目で把握できます
+              開始日〜終了日を横断する帯バーで表示。施工中の現場はそれぞれ異なる色で識別できます
             </p>
           </div>
         </div>
@@ -535,7 +523,7 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
 
       {/* 2. ビュー切り替えタブ & 月送りナビゲーション */}
       <div className="px-3.5 sm:px-5 py-3 border-b border-slate-200 bg-white flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        {/* ビューモードタブ */}
+        {/* ビューモードタブ（Google埋め込みを廃止し、工程カレンダーと一覧リストの2種） */}
         <div className="flex items-center bg-slate-100 p-1 rounded-xl w-fit border border-slate-200">
           <button
             onClick={() => setViewMode('site-calendar')}
@@ -547,17 +535,6 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
           >
             <CalendarDays className="w-3.5 h-3.5 text-amber-500" />
             <span>現場工程月間カレンダー</span>
-          </button>
-          <button
-            onClick={() => setViewMode('google-embed')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-              viewMode === 'google-embed'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
-            <span>Googleカレンダー公式表示</span>
           </button>
           <button
             onClick={() => setViewMode('list')}
@@ -596,7 +573,7 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
                     : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                 }`}
               >
-                施工中
+                施工中のみ
               </button>
               <button
                 onClick={() => setStatusFilter('planning')}
@@ -606,7 +583,7 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
                     : 'bg-sky-50 text-sky-700 hover:bg-sky-100'
                 }`}
               >
-                予定
+                着工予定
               </button>
               <button
                 onClick={() => setStatusFilter('completed')}
@@ -657,25 +634,27 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
         {/* A. 現場工程月間カレンダービュー（連続スパンバー表示） */}
         {viewMode === 'site-calendar' && (
           <div className="space-y-4">
-            {/* 今月稼働中の現場カラー凡例（レジェンド） */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                  当月の現場カラー凡例（各現場に固有の色を割り当てて視覚的に区別しています）
+            {/* カレンダー凡例（レジェンド）：過去・未来は同一色、施工中は各現場ごとに個別色 */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  現場の期間バー表示ルール（過去・未来は同一色、施工中は現場ごとに個別色）
                 </span>
-                <span className="text-[11px] text-slate-500">
-                  ※バーまたはタグをクリックすると現場詳細が開きます
+                <span className="text-[11px] text-slate-500 hidden sm:inline">
+                  ※バーをクリックすると現場詳細が開きます
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {activeMonthSites.length === 0 ? (
-                  <span className="text-xs text-slate-400">
-                    表示中の月に該当する現場はありません
+
+              {/* 区分まとめ */}
+              <div className="flex flex-wrap items-center gap-3 text-xs pt-1 border-t border-slate-200/80">
+                {/* 施工中現場（個別色分け） */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    施工中（個別色）:
                   </span>
-                ) : (
-                  activeMonthSites.map((site) => {
-                    const theme = getSiteColorTheme(site.id);
+                  {activeMonthInProgressSites.map((site) => {
+                    const theme = getSiteColorTheme(site);
                     const isHovered = hoveredSiteId === site.id;
                     return (
                       <button
@@ -683,7 +662,7 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
                         onClick={() => setSelectedSite(site)}
                         onMouseEnter={() => setHoveredSiteId(site.id)}
                         onMouseLeave={() => setHoveredSiteId(null)}
-                        className={`text-xs px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 font-bold ${
+                        className={`text-xs px-2.5 py-1 rounded-md border transition-all flex items-center gap-1.5 font-bold ${
                           theme.badgeBg
                         } ${theme.badgeText} ${
                           isHovered
@@ -692,15 +671,39 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
                         }`}
                         title={`${site.name} (${site.startDate} 〜 ${site.endDate})`}
                       >
-                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${theme.dot}`} />
-                        <span className="truncate max-w-[170px]">{site.name}</span>
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${theme.dot}`} />
+                        <span className="truncate max-w-[140px] sm:max-w-[180px]">{site.name}</span>
                         <span className="text-[10px] opacity-75 font-normal">
                           ({site.startDate?.slice(5)}〜{site.endDate?.slice(5)})
                         </span>
                       </button>
                     );
-                  })
-                )}
+                  })}
+                </div>
+
+                <div className="h-4 w-px bg-slate-300 hidden md:block" />
+
+                {/* 過去現場（一律グレー） */}
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-[11px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    過去完了:
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300 font-bold flex items-center gap-1 text-[11px]">
+                    <span className="w-2 h-2 rounded-full bg-slate-500" />
+                    一律グレー色
+                  </span>
+                </div>
+
+                {/* 未来現場（一律スカイブルー） */}
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-[11px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    着工予定:
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-sky-50 text-sky-800 border border-sky-300 font-bold flex items-center gap-1 text-[11px]">
+                    <span className="w-2 h-2 rounded-full bg-sky-500" />
+                    一律スカイブルー色
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -720,8 +723,8 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
               {/* 週ごとの行（6行） */}
               <div className="divide-y divide-slate-200">
                 {calendarWeeks.map((week, weekIdx) => {
-                  // スロット数に応じて週の高さを動的に確保（最低 96px、バーが多い場合は拡張）
-                  const rowHeight = Math.max(96, 32 + week.maxSlots * 26 + 10);
+                  // スロット数に応じて週の高さを動的に確保（最低 100px、バーが多い場合は拡張）
+                  const rowHeight = Math.max(100, 34 + week.maxSlots * 28 + 10);
 
                   return (
                     <div
@@ -777,7 +780,7 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
                           const isHovered = hoveredSiteId === bar.site.id;
                           const leftPercent = (bar.startIndex / 7) * 100;
                           const widthPercent = (bar.span / 7) * 100;
-                          const topPx = bar.slot * 25 + 2;
+                          const topPx = bar.slot * 27 + 2;
 
                           return (
                             <button
@@ -789,7 +792,7 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
                                 left: `calc(${leftPercent}% + 3px)`,
                                 width: `calc(${widthPercent}% - 6px)`,
                                 top: `${topPx}px`,
-                                height: '23px',
+                                height: '24px',
                               }}
                               className={`absolute pointer-events-auto z-10 flex items-center px-2 text-[11px] font-bold text-left transition-all shadow-xs border ${
                                 bar.theme.bg
@@ -802,7 +805,13 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
                                   ? 'brightness-110 ring-2 ring-slate-900 scale-[1.01] shadow-md z-20'
                                   : 'hover:brightness-105 hover:shadow-xs'
                               }`}
-                              title={`${bar.site.name}\n工期: ${bar.site.startDate} 〜 ${bar.site.endDate}\n工種: ${
+                              title={`${bar.site.name}\nステータス: ${
+                                bar.site.status === 'in_progress'
+                                  ? '施工中'
+                                  : bar.site.status === 'completed'
+                                  ? '完了現場'
+                                  : '着工予定'
+                              }\n工期: ${bar.site.startDate} 〜 ${bar.site.endDate}\n工種: ${
                                 bar.site.work_description || '一般施工'
                               }`}
                             >
@@ -840,53 +849,13 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
           </div>
         )}
 
-        {/* B. Googleカレンダー公式埋め込みビュー */}
-        {viewMode === 'google-embed' && (
-          <div className="space-y-3">
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-xs">
-              <div className="flex items-center gap-2">
-                <Info className="w-4 h-4 text-blue-600 shrink-0" />
-                <div>
-                  <strong>連携中カレンダーID:</strong>{' '}
-                  <span className="font-mono text-[11px] bg-white px-2 py-0.5 rounded border border-blue-200">
-                    {GOOGLE_CALENDAR_ID}
-                  </span>
-                </div>
-              </div>
-              <a
-                href={googleCalendarDirectUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-lg transition shrink-0 flex items-center gap-1 shadow-xs"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Googleカレンダーを開く
-              </a>
-            </div>
-
-            {/* Google Calendar Iframe */}
-            <div className="w-full h-[600px] rounded-xl border border-slate-300 overflow-hidden shadow-sm bg-white">
-              <iframe
-                src={googleCalendarEmbedUrl}
-                style={{ borderWidth: 0 }}
-                width="100%"
-                height="100%"
-                frameBorder="0"
-                scrolling="no"
-                title="Google Calendar"
-                className="w-full h-full"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* C. 全現場工期一覧リストビュー */}
+        {/* B. 全現場工期一覧リストビュー */}
         {viewMode === 'list' && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {sites.map((site) => {
                 const badge = getStatusBadge(site.status);
-                const theme = getSiteColorTheme(site.id);
+                const theme = getSiteColorTheme(site);
                 return (
                   <div
                     key={site.id}
@@ -899,7 +868,7 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${badge.bg}`}
                           >
                             <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
-                            {badge.label}
+                            {site.status === 'in_progress' ? '施工中' : site.status === 'completed' ? '過去完了' : '着工予定'}
                           </span>
                           <span
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${theme.badgeBg} ${theme.badgeText} border-slate-200`}
@@ -988,16 +957,16 @@ export const SiteCalendar: React.FC<SiteCalendarProps> = ({
                         getStatusBadge(selectedSite.status).dot
                       }`}
                     />
-                    {getStatusBadge(selectedSite.status).label}
+                    {selectedSite.status === 'in_progress' ? '施工中現場' : selectedSite.status === 'completed' ? '過去完了現場' : '着工予定現場'}
                   </span>
                   <span
                     className={`text-[11px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
-                      getSiteColorTheme(selectedSite.id).badgeBg
-                    } ${getSiteColorTheme(selectedSite.id).badgeText}`}
+                      getSiteColorTheme(selectedSite).badgeBg
+                    } ${getSiteColorTheme(selectedSite).badgeText}`}
                   >
                     <span
                       className={`w-1.5 h-1.5 rounded-full ${
-                        getSiteColorTheme(selectedSite.id).dot
+                        getSiteColorTheme(selectedSite).dot
                       }`}
                     />
                     カレンダー表示色

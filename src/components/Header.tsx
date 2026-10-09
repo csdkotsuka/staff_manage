@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Staff } from '@/lib/types';
+import { Staff, UserRole } from '@/lib/types';
 import {
   Radio,
   Siren,
@@ -14,6 +14,8 @@ import {
   LogIn,
   BookOpen,
   Info,
+  ShieldCheck,
+  Building2,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -26,9 +28,11 @@ interface HeaderProps {
   isLiveConnected: boolean;
   isMockMode: boolean;
   onReset: () => void;
-  activeView: 'main' | 'mypage' | 'calendar';
-  onChangeView: (view: 'main' | 'mypage' | 'calendar') => void;
+  activeView: 'main' | 'mypage' | 'calendar' | 'admin' | 'login';
+  onChangeView: (view: 'main' | 'mypage' | 'calendar' | 'admin' | 'login') => void;
   isLoggedIn: boolean;
+  currentUserRole?: UserRole;
+  currentUserName?: string;
   onOpenAuthModal: () => void;
 }
 
@@ -45,6 +49,8 @@ export const Header: React.FC<HeaderProps> = ({
   activeView,
   onChangeView,
   isLoggedIn,
+  currentUserRole = 'staff',
+  currentUserName,
   onOpenAuthModal,
 }) => {
   const currentStaff = staffs.find((s) => s.id === currentStaffId) || staffs[0];
@@ -54,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
         {/* 左側：ロゴ & 画面切り替えタブ & 接続バッジ */}
         <div className="flex items-center justify-between w-full md:w-auto gap-3">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => onChangeView('mypage')}>
             <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center font-black text-slate-950 shadow-sm">
               建
             </div>
@@ -70,8 +76,23 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* ビュー切り替えタブ（マイページ ⇄ 現場マップ ⇄ 現場カレンダー） */}
+          {/* ビュー切り替えタブ */}
           <div className="flex items-center bg-slate-100 border border-slate-200 rounded-xl p-1 gap-1">
+            {/* 自社管理タブ（自社管理者のみ、またはクリックで開ける） */}
+            {currentUserRole === 'super_admin' && (
+              <button
+                onClick={() => onChangeView('admin')}
+                className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-black transition ${
+                  activeView === 'admin'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-indigo-700 hover:text-indigo-900 bg-indigo-50/60'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>自社管理</span>
+              </button>
+            )}
+
             <button
               onClick={() => onChangeView('mypage')}
               className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition ${
@@ -103,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <Calendar className="w-3.5 h-3.5 text-blue-600" />
-              <span>カレンダー</span>
+              <span>現場工程カレンダー</span>
             </button>
           </div>
 
@@ -141,34 +162,27 @@ export const Header: React.FC<HeaderProps> = ({
             >
               {staffs.map((staff) => (
                 <option key={staff.id} value={staff.id} className="bg-white text-slate-900">
-                  {staff.name}
+                  {staff.name} {staff.isAdmin ? '(社長)' : ''}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* ログインボタン */}
-          {!isLoggedIn ? (
-            <button
-              onClick={onOpenAuthModal}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 rounded-lg text-xs font-bold transition shadow-xs"
-            >
-              <LogIn className="w-3.5 h-3.5 text-amber-600" />
-              <span className="hidden xs:inline">ログイン</span>
-            </button>
-          ) : (
-            <div
-              onClick={() => onChangeView('mypage')}
-              className="cursor-pointer flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-100 border border-slate-200 text-[11px] text-slate-700 hover:border-amber-500 transition shadow-xs"
-              title="マイページを開く"
-            >
-              <span
-                className="w-2.5 h-2.5 rounded-full ring-1 ring-slate-300"
-                style={{ backgroundColor: currentStaff.avatar_color }}
-              />
-              <span className="font-bold">{currentStaff.name.split(' ')[0]}</span>
-            </div>
-          )}
+          {/* 全スタッフ・自社ログインページボタン */}
+          <button
+            onClick={() => onChangeView('login')}
+            className={`flex items-center gap-1 px-2.5 py-1.5 border rounded-lg text-xs font-bold transition shadow-xs ${
+              activeView === 'login'
+                ? 'bg-slate-900 text-white border-slate-900'
+                : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800'
+            }`}
+            title="全スタッフ・自社・社長の統合ログインページを開く"
+          >
+            <LogIn className="w-3.5 h-3.5 text-amber-600" />
+            <span className="hidden xs:inline">
+              {currentUserRole === 'super_admin' ? '自社' : currentUserRole === 'company_admin' ? '社長' : 'ログイン'}
+            </span>
+          </button>
 
           {/* 全社チャットトグルボタン */}
           <button
@@ -197,29 +211,18 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden sm:inline">急募レスキュー</span>
           </button>
 
-          {/* アプリ概要 (About) リンク */}
-          <a
-            href="/about"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold transition shadow-xs"
-            title="アプリ概要（About）を開く"
+          {/* 自社管理コンソールボタン（スーパー管理者の常時ショートカット） */}
+          <button
+            onClick={() => onChangeView('admin')}
+            className={`p-1.5 rounded-lg border transition shadow-xs ${
+              activeView === 'admin'
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white hover:bg-slate-100 border-slate-200 text-indigo-700'
+            }`}
+            title="自社管理ページ（Creative SD）を開く"
           >
-            <Info className="w-3.5 h-3.5 text-slate-500" />
-            <span className="hidden xl:inline">概要</span>
-          </a>
-
-          {/* 取扱説明書 (マニュアル) リンク */}
-          <a
-            href="/guide"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 hover:border-amber-400 text-slate-700 rounded-lg text-xs font-bold transition shadow-xs"
-            title="取扱説明書（マニュアル）を開く"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-amber-600" />
-            <span className="hidden lg:inline">説明書</span>
-          </a>
+            <ShieldCheck className="w-4 h-4" />
+          </button>
 
           {/* リセット */}
           <button

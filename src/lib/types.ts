@@ -1,12 +1,40 @@
 export type StaffStatus = 'not_started' | 'moving' | 'working' | 'completed' | 'available';
 
+// ユーザー権限ロール
+export type UserRole = 'super_admin' | 'company_admin' | 'staff';
+
+// 建設会社（企業アカウント）
+export interface Company {
+  id: string;
+  name: string;
+  address: string;
+  phone: string;
+  presidentName: string;
+  presidentEmail: string;
+  presidentPassword?: string;
+  createdAt: string;
+}
+
+// 認証済みユーザー
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  companyId?: string;
+  companyName?: string;
+  staffId?: string;
+}
+
 export interface Staff {
   id: string;
   name: string;
   role: string;
   phone: string;
   email?: string;
+  password?: string;
   isAdmin?: boolean;
+  companyId?: string;
   avatar_color: string;
   status: StaffStatus;
   current_site_name: string;

@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useStaffStatus } from '@/hooks/useStaffStatus';
 import { useSites } from '@/hooks/useSites';
-import { Staff, StaffStatus } from '@/lib/types';
+import { useCompanies } from '@/hooks/useCompanies';
+import { Staff, StaffStatus, UserRole, Company } from '@/lib/types';
 import { Header } from '@/components/Header';
 import { MapWrapper } from '@/components/MapWrapper';
 import { StaffCard } from '@/components/StaffCard';
@@ -17,6 +18,8 @@ import { DailyReportListModal } from '@/components/DailyReportListModal';
 import { SiteManagementModal } from '@/components/SiteManagementModal';
 import { StaffManagementModal } from '@/components/StaffManagementModal';
 import { SiteCalendar } from '@/components/SiteCalendar';
+import { PlatformAdminDashboard } from '@/components/PlatformAdminDashboard';
+import { LoginPage } from '@/components/LoginPage';
 import { useDailyReports } from '@/hooks/useDailyReports';
 import {
   Bell,
@@ -31,6 +34,8 @@ import {
   FileText,
   Calendar,
   Users,
+  ShieldCheck,
+  UserCheck,
 } from 'lucide-react';
 
 export default function Home() {
@@ -52,11 +57,26 @@ export default function Home() {
   // 現場データのリアルタイム管理
   const { sites, addSite, updateSite, deleteSite } = useSites();
 
+  // 建設会社・自社管理者アカウント管理
+  const {
+    companies,
+    adminPassword,
+    addCompany,
+    deleteCompany,
+    updateAdminPassword,
+  } = useCompanies();
+
   // 日報データのリアルタイム管理（Firestore同期）
   const { reports, deleteReport, approveReport, saveSupervisorSignature } = useDailyReports();
 
-  // 画面ビュー切り替え ('mypage' | 'main' | 'calendar')
-  const [activeView, setActiveView] = useState<'mypage' | 'main' | 'calendar'>('mypage');
+  // 画面ビュー切り替え ('mypage' | 'main' | 'calendar' | 'admin' | 'login')
+  const [activeView, setActiveView] = useState<'mypage' | 'main' | 'calendar' | 'admin' | 'login'>('mypage');
+
+  // ユーザー認証・権限状態
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole>('company_admin');
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>('sato@craftsync.local');
+  const [currentUserName, setCurrentUserName] = useState<string>('佐藤 健一 (社長)');
+  const [currentCompany, setCurrentCompany] = useState<Company | null>(companies[0] || null);
 
   // モーダル・チャット開閉状態
   const [isRescueModalOpen, setIsRescueModalOpen] = useState(false);
@@ -66,10 +86,6 @@ export default function Home() {
   const [isReportListModalOpen, setIsReportListModalOpen] = useState(false);
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
-
-  // ログイン状態
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // 初期状態で操作可能な社員にログイン済み扱い
-  const [userEmail, setUserEmail] = useState<string>('sato@craftsync.local');
 
   // 地図のフォーカス座標
   const [focusCoord, setFocusCoord] = useState<{ lat: number; lng: number } | null>(null);
@@ -93,21 +109,53 @@ export default function Home() {
     updateStatus(staffId, 'moving', siteName, note);
   };
 
-  // ログイン成功ハンドラ
-  const handleLoginSuccess = (email: string, matchedStaff?: Staff) => {
-    setIsLoggedIn(true);
-    setUserEmail(email);
+  // 統合ログイン成功ハンドラ
+  const handleUnifiedLoginSuccess = (
+    role: UserRole,
+    email: string,
+    name: string,
+    matchedStaff?: Staff,
+    company?: Company
+  ) => {
+    setCurrentUserRole(role);
+    setCurrentUserEmail(email);
+    setCurrentUserName(name);
+
+    if (company) {
+      setCurrentCompany(company);
+    }
+
     if (matchedStaff) {
       setCurrentStaffId(matchedStaff.id);
     }
-    setActiveView('mypage');
+
+    // ロールに応じた初期遷移先
+    if (role === 'super_admin') {
+      setActiveView('admin');
+    } else if (role === 'company_admin') {
+      setActiveView('main');
+    } else {
+      setActiveView('mypage');
+    }
+  };
+
+  // 自社管理から建設会社を代理選択して現場画面へ移動
+  const handleSelectCompanyAsAdmin = (company: Company) => {
+    setCurrentCompany(company);
+    setCurrentUserRole('company_admin');
+    setCurrentUserEmail(company.presidentEmail);
+    setCurrentUserName(`${company.presidentName} (社長)`);
+    // 社長に該当するスタッフを選択
+    const matched = staffs.find((s) => s.isAdmin || s.email === company.presidentEmail);
+    if (matched) {
+      setCurrentStaffId(matched.id);
+    }
+    setActiveView('main');
   };
 
   // ログアウト
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserEmail('');
-    setIsAuthModalOpen(true);
+    setActiveView('login');
   };
 
   return (
@@ -125,8 +173,10 @@ export default function Home() {
         onReset={resetToDefault}
         activeView={activeView}
         onChangeView={setActiveView}
-        isLoggedIn={isLoggedIn}
-        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        isLoggedIn={true}
+        currentUserRole={currentUserRole}
+        currentUserName={currentUserName}
+        onOpenAuthModal={() => setActiveView('login')}
       />
 
       {/* リアルタイム更新通知トースト */}
@@ -139,23 +189,62 @@ export default function Home() {
 
       {/* 2. メインエリア */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 space-y-4">
-        {/* 週間天気予報ウィジェット（常時トップに表示） */}
-        <WeatherWidget />
+        {/* ログイン・自社管理以外の画面では天気予報ウィジェットを表示 */}
+        {activeView !== 'admin' && activeView !== 'login' && (
+          <WeatherWidget />
+        )}
 
-        {/* モックモードガイダンス */}
-        {isMockMode && (
-          <div className="bg-white border border-amber-300 rounded-xl p-3 text-xs text-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-xs">
-            <div className="flex items-center gap-2">
-              <Info className="w-4 h-4 text-amber-500 shrink-0" />
+        {/* ロールインフォメーションバナー */}
+        {currentUserRole === 'super_admin' && activeView !== 'admin' && (
+          <div className="bg-indigo-900 text-white rounded-xl p-3 text-xs flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2 font-bold">
+              <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
               <span>
-                <strong>デモモード動作中:</strong> 別タブや別端末で開くとリアルタイムに双方向同期します。
-                Firebase設定を投入すると完全クラウド同期（Firebase Live）に切り替わります。
+                自社運営管理者（Creative SD）として現場システムをプレビュー中
               </span>
             </div>
+            <button
+              onClick={() => setActiveView('admin')}
+              className="px-3 py-1 bg-white text-indigo-900 font-black rounded-lg text-[11px] hover:bg-slate-100 transition shadow-xs"
+            >
+              自社管理コンソールへ戻る
+            </button>
           </div>
         )}
 
-        {/* A. マイページビュー */}
+        {/* ────────────────────────────────────────── */}
+        {/* ビュー0: 自社（Creative SD）管理ページ */}
+        {/* ────────────────────────────────────────── */}
+        {activeView === 'admin' && (
+          <PlatformAdminDashboard
+            companies={companies}
+            adminPassword={adminPassword}
+            onAddCompany={addCompany}
+            onDeleteCompany={deleteCompany}
+            onUpdateAdminPassword={updateAdminPassword}
+            onSelectCompanyAsAdmin={handleSelectCompanyAsAdmin}
+            staffs={staffs}
+            onLogout={handleLogout}
+            onOpenMainApp={() => setActiveView('main')}
+          />
+        )}
+
+        {/* ────────────────────────────────────────── */}
+        {/* ビュー0.5: 全スタッフ統合ログインページ */}
+        {/* ────────────────────────────────────────── */}
+        {activeView === 'login' && (
+          <LoginPage
+            staffs={staffs}
+            companies={companies}
+            adminPassword={adminPassword}
+            onLoginSuccess={handleUnifiedLoginSuccess}
+            onBackToApp={() => setActiveView('main')}
+          />
+        )}
+
+        {/* ────────────────────────────────────────── */}
+        {/* ビューA: マイページビュー */}
+        {/* ────────────────────────────────────────── */}
         {activeView === 'mypage' && (
           <MyPage
             currentStaff={currentStaff}
@@ -170,7 +259,9 @@ export default function Home() {
           />
         )}
 
-        {/* B. 現場カレンダービュー */}
+        {/* ────────────────────────────────────────── */}
+        {/* ビューB: 現場工程カレンダービュー */}
+        {/* ────────────────────────────────────────── */}
         {activeView === 'calendar' && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <SiteCalendar
@@ -181,9 +272,51 @@ export default function Home() {
           </div>
         )}
 
-        {/* C. 全体現場マップ & 全員ボードビュー */}
+        {/* ────────────────────────────────────────── */}
+        {/* ビューC: 全体現場マップ & 全員ボードビュー */}
+        {/* ────────────────────────────────────────── */}
         {activeView === 'main' && (
           <div className="space-y-4 animate-in fade-in duration-200">
+            {/* 企業・社長バナー */}
+            {currentCompany && (
+              <div className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-700 flex items-center justify-center font-bold text-xs">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-sm text-slate-900">
+                        {currentCompany.name}
+                      </span>
+                      <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded border border-slate-200">
+                        社長: {currentCompany.presidentName}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-500">
+                      本社: {currentCompany.address} / TEL: {currentCompany.phone}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setIsStaffModalOpen(true)}
+                    className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold rounded-lg transition flex items-center gap-1"
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-amber-600" />
+                    <span>社員アカウント作成・管理</span>
+                  </button>
+                  <button
+                    onClick={() => setIsSiteModalOpen(true)}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-lg transition flex items-center gap-1"
+                  >
+                    <span>現場を登録</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* 現場サマリーKPI */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <div className="bg-white border border-emerald-200 rounded-xl p-2.5 sm:p-3 flex items-center gap-2.5 shadow-xs">
@@ -290,7 +423,7 @@ export default function Home() {
                     className="text-xs bg-white hover:bg-slate-50 text-sky-700 font-bold px-3 py-1.5 rounded-lg border border-sky-300 flex items-center gap-1.5 transition shadow-xs active:scale-95"
                   >
                     <Users className="w-3.5 h-3.5 text-sky-600" />
-                    社員名簿・権限
+                    社員アカウント作成・管理
                   </button>
                   <button
                     onClick={() => setActiveView('mypage')}
@@ -302,165 +435,38 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {staffs.map((staff) => (
-                  <div
+                  <StaffCard
                     key={staff.id}
-                    className={
-                      staff.id === currentStaffId
-                        ? 'ring-2 ring-amber-500 rounded-2xl shadow-sm'
-                        : ''
+                    staff={staff}
+                    isCurrentStaff={staff.id === currentStaffId}
+                    onStatusChange={(status, note) =>
+                      updateStatus(staff.id, status, undefined, note)
                     }
-                  >
-                    <StaffCard
-                      staff={staff}
-                      isCurrentUser={staff.id === currentStaffId}
-                      onUpdateStatus={updateStatus}
-                      onFocusOnMap={handleFocusOnMap}
-                    />
-                  </div>
+                    onFocusMap={() => handleFocusOnMap(staff.lat, staff.lng)}
+                    onSelectAsCurrent={() => setCurrentStaffId(staff.id)}
+                  />
                 ))}
-              </div>
-            </section>
-
-            {/* 5. 現場日程カレンダープレビュー */}
-            <section className="space-y-3">
-              <div className="flex items-center justify-between px-1">
-                <h3 className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-blue-600" />
-                  現場工期日程（Googleカレンダー連携）
-                </h3>
-                <button
-                  onClick={() => setIsSiteModalOpen(true)}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-bold"
-                >
-                  ＋ 現場を追加・編集
-                </button>
-              </div>
-              <SiteCalendar
-                sites={sites}
-                onOpenSiteManagement={() => setIsSiteModalOpen(true)}
-                onFocusOnMap={handleFocusOnMap}
-              />
-            </section>
-
-            {/* 6. 現場情報一覧（全件） */}
-            <section className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-3 shadow-xs">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-xs text-slate-700 flex items-center gap-1.5 uppercase tracking-wider">
-                  <Building2 className="w-4 h-4 text-amber-500" />
-                  登録現場一覧（過去・現在・未来 全{sites.length}箇所）
-                </h3>
-                <button
-                  onClick={() => setIsSiteModalOpen(true)}
-                  className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-1 rounded-lg border border-slate-300 transition"
-                >
-                  現場管理
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {sites.map((site) => {
-                  const statusBadge =
-                    site.status === 'in_progress'
-                      ? { label: '施工中', bg: 'bg-emerald-50 text-emerald-800 border-emerald-200' }
-                      : site.status === 'planning'
-                      ? { label: '着工予定', bg: 'bg-sky-50 text-sky-800 border-sky-200' }
-                      : { label: '完了現場', bg: 'bg-slate-100 text-slate-700 border-slate-200' };
-
-                  return (
-                    <div
-                      key={site.id}
-                      className="bg-slate-50/70 p-3 rounded-xl border border-slate-200 text-xs flex flex-col justify-between space-y-2 hover:bg-slate-50 transition"
-                    >
-                      <div>
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                          <span
-                            className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${statusBadge.bg}`}
-                          >
-                            {statusBadge.label}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-medium truncate">
-                            {site.client_name}
-                          </span>
-                        </div>
-                        <h4 className="font-bold text-slate-900 leading-snug">{site.name}</h4>
-                        <p className="text-slate-500 text-[11px] mt-1">{site.address}</p>
-                        <p className="text-amber-800 text-[11px] mt-1 font-medium">工種: {site.work_description}</p>
-                        {(site.startDate || site.endDate) && (
-                          <p className="text-blue-700 text-[10px] mt-1 flex items-center gap-1 font-bold">
-                            <Calendar className="w-3 h-3" />
-                            工期: {site.startDate || '未定'} 〜 {site.endDate || '未定'}
-                          </p>
-                        )}
-                        {site.notes && (
-                          <p className="text-slate-500 text-[10px] mt-1 bg-white p-1.5 rounded border border-slate-200">
-                            <span className="text-amber-700 font-bold">備考:</span> {site.notes}
-                          </p>
-                        )}
-                      </div>
-                      <div className="mt-2.5 pt-2 border-t border-slate-200 flex items-center justify-between">
-                        <span className="text-[10px] text-slate-400 font-medium">{site.client_name}</span>
-                        <button
-                          onClick={() => handleFocusOnMap(site.lat, site.lng)}
-                          className="text-[11px] text-sky-600 hover:text-sky-700 font-bold"
-                        >
-                          地図で見る
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             </section>
           </div>
         )}
       </main>
 
-      {/* 急な呼び出し（レスキュー）モーダル */}
+      {/* 5. 各種ポップアップ・モーダル */}
       <RescueModal
         isOpen={isRescueModalOpen}
         onClose={() => setIsRescueModalOpen(false)}
         staffs={staffs}
         onDispatchStaff={handleDispatchStaff}
-        onPreviewLocation={setTargetRescueCoord}
+        onSetTargetRescueCoord={(lat, lng, title) => {
+          setTargetRescueCoord({ lat, lng, title });
+          setActiveView('main');
+          setFocusCoord({ lat, lng });
+        }}
       />
 
-      {/* 全社現場グループトーク（LINE風チャット） */}
-      <GroupChat
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        currentStaff={currentStaff}
-      />
-
-      {/* 社員認証・ログインモーダル */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        staffs={staffs}
-        onSelectStaff={setCurrentStaffId}
-        onLoginSuccess={handleLoginSuccess}
-      />
-
-      {/* 音声＋Gemini AI日報モーダル */}
-      <DailyReportModal
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        currentStaff={currentStaff}
-      />
-
-      {/* 提出済み日報一覧・PDF帳票出力モーダル */}
-      <DailyReportListModal
-        isOpen={isReportListModalOpen}
-        onClose={() => setIsReportListModalOpen(false)}
-        reports={reports}
-        currentStaff={currentStaff}
-        onDeleteReport={deleteReport}
-        onApproveReport={approveReport}
-        onSaveSupervisorSignature={saveSupervisorSignature}
-      />
-
-      {/* 管理者用現場管理モーダル */}
       <SiteManagementModal
         isOpen={isSiteModalOpen}
         onClose={() => setIsSiteModalOpen(false)}
@@ -470,40 +476,47 @@ export default function Home() {
         onDeleteSite={deleteSite}
       />
 
-      {/* 管理者用社員名簿・役職・権限管理モーダル */}
       <StaffManagementModal
         isOpen={isStaffModalOpen}
         onClose={() => setIsStaffModalOpen(false)}
         staffs={staffs}
         currentStaffId={currentStaffId}
-        onUpdateStaff={updateStaffInfo}
         onAddStaff={addStaff}
+        onUpdateStaff={updateStaffInfo}
         onDeleteStaff={deleteStaff}
       />
 
-      {/* フッター */}
-      <footer className="border-t border-slate-200 bg-white py-4 px-4 text-center text-xs text-slate-500 space-y-2">
-        <div className="flex items-center justify-center gap-4 text-[11px] text-slate-600">
-          <a
-            href="/guide"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-amber-600 underline transition"
-          >
-            📖 取扱説明書（マニュアル）
-          </a>
-          <span>•</span>
-          <a
-            href="/docs"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-sky-600 underline transition"
-          >
-            🛠️ 技術仕様書・アーキテクチャ
-          </a>
-        </div>
-        <p>建設会社向け リアルタイム現場・位置情報・ステータス共有システム (CraftSync 愛媛県版)</p>
-      </footer>
+      <DailyReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        currentStaff={currentStaff}
+      />
+
+      <DailyReportListModal
+        isOpen={isReportListModalOpen}
+        onClose={() => setIsReportListModalOpen(false)}
+        reports={reports}
+        onDeleteReport={deleteReport}
+        onApproveReport={approveReport}
+        onSaveSignature={saveSupervisorSignature}
+      />
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        staffs={staffs}
+        onSelectStaff={setCurrentStaffId}
+        onLoginSuccess={(email, matched) => {
+          handleUnifiedLoginSuccess('staff', email, matched?.name || email, matched);
+        }}
+      />
+
+      {/* グループトークチャット */}
+      <GroupChat
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        currentStaff={currentStaff}
+      />
     </div>
   );
 }
