@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { WeatherForecastDay } from '@/lib/types';
+import { WeatherForecastDay, WeatherHourlySlot } from '@/lib/types';
 import {
   Sun,
   Cloud,
@@ -12,6 +12,7 @@ import {
   CloudFog,
   Umbrella,
   CalendarDays,
+  Clock,
   RefreshCw,
   Navigation,
   Info,
@@ -40,14 +41,14 @@ function parseWmoCode(code: number): { text: string; icon: string } {
 }
 
 // アイコンコンポーネント取得
-function renderWeatherIcon(iconName: string, isRainy: boolean) {
+function renderWeatherIcon(iconName: string, isRainy: boolean, size = 'w-6 h-6') {
   const className = isRainy
-    ? 'w-6 h-6 text-blue-500 animate-pulse'
+    ? `${size} text-blue-500 animate-pulse`
     : iconName === 'Sun'
-    ? 'w-6 h-6 text-amber-500'
+    ? `${size} text-amber-500`
     : iconName === 'CloudSun'
-    ? 'w-6 h-6 text-amber-500'
-    : 'w-6 h-6 text-slate-400';
+    ? `${size} text-amber-500`
+    : `${size} text-slate-400`;
 
   switch (iconName) {
     case 'Sun':
@@ -80,8 +81,26 @@ const FALLBACK_FORECAST: WeatherForecastDay[] = [
   { date: '9/25', dayOfWeek: '金', weatherCode: 63, weatherText: '雨', weatherIcon: 'CloudRain', tempMax: 21, tempMin: 15, precipitationProb: 80, isRainy: true },
 ];
 
+// フォールバック用のダミー時間帯別データ生成
+const createFallbackHourly = (isTomorrow = false): WeatherHourlySlot[] => {
+  const hours = [0, 3, 6, 9, 12, 15, 18, 21];
+  return hours.map((h) => ({
+    time: `${h.toString().padStart(2, '0')}:00`,
+    hour: h,
+    weatherCode: isTomorrow ? (h >= 12 ? 2 : 1) : 1,
+    weatherText: isTomorrow && h >= 12 ? '一部曇' : '晴れ',
+    weatherIcon: isTomorrow && h >= 12 ? 'CloudSun' : 'Sun',
+    temp: h < 6 ? 18 : h < 12 ? 22 : h < 18 ? 26 : 21,
+    precipitationProb: isTomorrow && h >= 12 ? 20 : 10,
+    isRainy: false,
+  }));
+};
+
 export const WeatherWidget: React.FC = () => {
   const [forecast, setForecast] = useState<WeatherForecastDay[]>(FALLBACK_FORECAST);
+  const [todayHourly, setTodayHourly] = useState<WeatherHourlySlot[]>(createFallbackHourly(false));
+  const [tomorrowHourly, setTomorrowHourly] = useState<WeatherHourlySlot[]>(createFallbackHourly(true));
+  const [viewMode, setViewMode] = useState<'weekly' | 'today' | 'tomorrow'>('weekly');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [lastFetched, setLastFetched] = useState<string>('たった今');
   const [selectedLocId, setSelectedLocId] = useState<string>('matsuyama');
@@ -95,7 +114,7 @@ export const WeatherWidget: React.FC = () => {
     setIsLoading(true);
     try {
       const res = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo`
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&hourly=temperature_2m,precipitation_probability,weather_code&timezone=Asia%2FTokyo`
       );
       if (!res.ok) throw new Error('Weather API error');
       const data = await res.json();
@@ -124,6 +143,39 @@ export const WeatherWidget: React.FC = () => {
           precipitationProb: prob,
           isRainy: prob >= 40,
         });
+      }
+
+      // 時間帯別（今日 0..23, 明日 24..47）のパース
+      if (data.hourly && data.hourly.time) {
+        const parseSlots = (startIndex: number, count: number): WeatherHourlySlot[] => {
+          const slots: WeatherHourlySlot[] = [];
+          for (let i = startIndex; i < startIndex + count && i < data.hourly.time.length; i++) {
+            const timeStr = data.hourly.time[i]; // "2026-10-10T06:00"
+            const dateObj = new Date(timeStr);
+            const hour = dateObj.getHours();
+            const code = data.hourly.weather_code[i] ?? 0;
+            const { text, icon } = parseWmoCode(code);
+            const prob = data.hourly.precipitation_probability[i] ?? 0;
+            const temp = Math.round(data.hourly.temperature_2m[i] ?? 20);
+
+            slots.push({
+              time: `${hour.toString().padStart(2, '0')}:00`,
+              hour,
+              weatherCode: code,
+              weatherText: text,
+              weatherIcon: icon,
+              temp,
+              precipitationProb: prob,
+              isRainy: prob >= 40,
+            });
+          }
+          return slots;
+        };
+
+        const todaySlots = parseSlots(0, 24);
+        const tomorrowSlots = parseSlots(24, 24);
+        if (todaySlots.length > 0) setTodayHourly(todaySlots);
+        if (tomorrowSlots.length > 0) setTomorrowHourly(tomorrowSlots);
       }
 
       if (dailyList.length > 0) {
@@ -228,76 +280,209 @@ export const WeatherWidget: React.FC = () => {
         </div>
       </div>
 
-      {/* 週間天気カード（横スクロール対応） */}
-      <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-thin">
-        {forecast.map((day, idx) => {
-          const isToday = idx === 0;
-          return (
-            <div
-              key={idx}
-              className={`flex-shrink-0 w-24 sm:w-28 p-2 rounded-xl border text-center transition flex flex-col justify-between ${
-                day.isRainy
-                  ? 'bg-blue-50/60 border-blue-200'
-                  : isToday
-                  ? 'bg-amber-50/50 border-amber-300 ring-1 ring-amber-300'
-                  : 'bg-slate-50/80 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {/* 日付・曜日 */}
-              <div>
-                <div className="flex items-center justify-center gap-1">
-                  <span className={`text-xs font-black ${isToday ? 'text-amber-800' : 'text-slate-800'}`}>
-                    {day.date}
-                  </span>
-                  <span
-                    className={`text-[10px] font-bold ${
-                      day.dayOfWeek === '日'
-                        ? 'text-rose-600'
-                        : day.dayOfWeek === '土'
-                        ? 'text-blue-600'
+      {/* 表示切替タブ（週間予報 / 今日の時間別 / 明日の時間別） */}
+      <div className="flex items-center gap-1.5 border-b border-slate-200 pb-2 px-1">
+        <button
+          type="button"
+          onClick={() => setViewMode('weekly')}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition ${
+            viewMode === 'weekly'
+              ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          }`}
+        >
+          <CalendarDays className="w-3.5 h-3.5" />
+          週間予報 (7日)
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode('today')}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition ${
+            viewMode === 'today'
+              ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          }`}
+        >
+          <Clock className="w-3.5 h-3.5" />
+          今日 (時間帯別)
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode('tomorrow')}
+          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition ${
+            viewMode === 'tomorrow'
+              ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          }`}
+        >
+          <Clock className="w-3.5 h-3.5" />
+          明日 (時間帯別)
+        </button>
+      </div>
+
+      {/* 1. 週間天気カード（横スクロール対応） */}
+      {viewMode === 'weekly' && (
+        <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-thin">
+          {forecast.map((day, idx) => {
+            const isToday = idx === 0;
+            const isTomorrow = idx === 1;
+            return (
+              <div
+                key={idx}
+                onClick={() => {
+                  if (isToday) setViewMode('today');
+                  if (isTomorrow) setViewMode('tomorrow');
+                }}
+                className={`flex-shrink-0 w-24 sm:w-28 p-2 rounded-xl border text-center transition flex flex-col justify-between ${
+                  isToday || isTomorrow ? 'cursor-pointer hover:shadow-sm' : ''
+                } ${
+                  day.isRainy
+                    ? 'bg-blue-50/60 border-blue-200'
+                    : isToday
+                    ? 'bg-amber-50/50 border-amber-300 ring-1 ring-amber-300'
+                    : 'bg-slate-50/80 border-slate-200 hover:bg-slate-50'
+                }`}
+                title={isToday ? 'クリックで今日の時間帯別を表示' : isTomorrow ? 'クリックで明日の時間帯別を表示' : undefined}
+              >
+                {/* 日付・曜日 */}
+                <div>
+                  <div className="flex items-center justify-center gap-1">
+                    <span className={`text-xs font-black ${isToday ? 'text-amber-800' : 'text-slate-800'}`}>
+                      {day.date}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold ${
+                        day.dayOfWeek === '日'
+                          ? 'text-rose-600'
+                          : day.dayOfWeek === '土'
+                          ? 'text-blue-600'
+                          : 'text-slate-500'
+                      }`}
+                    >
+                      ({day.dayOfWeek})
+                    </span>
+                  </div>
+
+                  {/* 天気アイコンとテキスト */}
+                  <div className="my-1.5 flex flex-col items-center justify-center">
+                    {renderWeatherIcon(day.weatherIcon, day.isRainy)}
+                    <span className="text-[11px] font-bold text-slate-700 mt-0.5">
+                      {day.weatherText}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 降水確率 & 気温 */}
+                <div className="space-y-1 pt-1.5 border-t border-slate-200">
+                  {/* 降水確率 */}
+                  <div
+                    className={`inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                      day.precipitationProb >= 50
+                        ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                        : day.precipitationProb >= 30
+                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
                         : 'text-slate-500'
                     }`}
                   >
-                    ({day.dayOfWeek})
-                  </span>
-                </div>
+                    <Umbrella className="w-2.5 h-2.5 shrink-0" />
+                    <span>{day.precipitationProb}%</span>
+                  </div>
 
-                {/* 天気アイコンとテキスト */}
-                <div className="my-1.5 flex flex-col items-center justify-center">
-                  {renderWeatherIcon(day.weatherIcon, day.isRainy)}
-                  <span className="text-[11px] font-bold text-slate-700 mt-0.5">
-                    {day.weatherText}
-                  </span>
+                  {/* 気温 */}
+                  <div className="text-[10px] text-slate-600 flex items-center justify-center gap-1 font-mono">
+                    <span className="text-rose-600 font-bold">{day.tempMax}°</span>
+                    <span className="text-slate-400">/</span>
+                    <span className="text-blue-600">{day.tempMin}°</span>
+                  </div>
+
+                  {(isToday || isTomorrow) && (
+                    <div className="text-[9px] text-amber-700 font-bold mt-0.5">
+                      時間別を見る →
+                    </div>
+                  )}
                 </div>
               </div>
+            );
+          })}
+        </div>
+      )}
 
-              {/* 降水確率 & 気温 */}
-              <div className="space-y-1 pt-1.5 border-t border-slate-200">
-                {/* 降水確率 */}
+      {/* 2. 時間帯別予報（今日 または 明日） */}
+      {(viewMode === 'today' || viewMode === 'tomorrow') && (
+        <div>
+          <div className="flex items-center justify-between text-xs text-slate-600 font-bold px-1 mb-2">
+            <span>
+              {viewMode === 'today' ? '📅 今日の時間帯別予報（1時間毎）' : '📅 明日の時間帯別予報（1時間毎）'}
+            </span>
+            <span className="text-[11px] text-slate-400 font-normal">
+              横スクロールで確認できます →
+            </span>
+          </div>
+
+          <div className="flex items-stretch gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+            {(viewMode === 'today' ? todayHourly : tomorrowHourly).map((slot, idx) => {
+              // 作業時間帯（08:00 〜 17:00）を強調表示
+              const isWorkHour = slot.hour >= 8 && slot.hour <= 17;
+              return (
                 <div
-                  className={`inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                    day.precipitationProb >= 50
-                      ? 'bg-rose-100 text-rose-700 border border-rose-200'
-                      : day.precipitationProb >= 30
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                      : 'text-slate-500'
+                  key={idx}
+                  className={`flex-shrink-0 w-20 sm:w-22 p-2 rounded-xl border text-center flex flex-col justify-between transition ${
+                    slot.isRainy
+                      ? 'bg-blue-50/70 border-blue-200'
+                      : isWorkHour
+                      ? 'bg-amber-50/30 border-amber-300/80 shadow-xs'
+                      : 'bg-slate-50/80 border-slate-200'
                   }`}
                 >
-                  <Umbrella className="w-2.5 h-2.5 shrink-0" />
-                  <span>{day.precipitationProb}%</span>
-                </div>
+                  {/* 時刻 */}
+                  <div>
+                    <div className="flex items-center justify-center gap-1">
+                      <span className={`text-xs font-black font-mono ${isWorkHour ? 'text-amber-800' : 'text-slate-800'}`}>
+                        {slot.time}
+                      </span>
+                    </div>
+                    {isWorkHour && (
+                      <span className="text-[9px] font-bold text-amber-700 bg-amber-100/70 px-1 rounded">
+                        作業帯
+                      </span>
+                    )}
 
-                {/* 気温 */}
-                <div className="text-[10px] text-slate-600 flex items-center justify-center gap-1 font-mono">
-                  <span className="text-rose-600 font-bold">{day.tempMax}°</span>
-                  <span className="text-slate-400">/</span>
-                  <span className="text-blue-600">{day.tempMin}°</span>
+                    {/* アイコン & 天気 */}
+                    <div className="my-1.5 flex flex-col items-center justify-center">
+                      {renderWeatherIcon(slot.weatherIcon, slot.isRainy, 'w-5 h-5')}
+                      <span className="text-[10px] font-bold text-slate-700 mt-0.5 line-clamp-1">
+                        {slot.weatherText}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 降水確率 & 気温 */}
+                  <div className="space-y-1 pt-1 border-t border-slate-200">
+                    {/* 降水確率 */}
+                    <div
+                      className={`inline-flex items-center justify-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-bold ${
+                        slot.precipitationProb >= 50
+                          ? 'bg-rose-100 text-rose-700'
+                          : slot.precipitationProb >= 30
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-slate-500'
+                      }`}
+                    >
+                      <Umbrella className="w-2.5 h-2.5 shrink-0" />
+                      <span>{slot.precipitationProb}%</span>
+                    </div>
+
+                    {/* 気温 */}
+                    <div className="text-[11px] font-black text-slate-800 font-mono">
+                      {slot.temp}°C
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* 気象庁データ出典の注記 */}
       <div className="flex items-center justify-between text-[10px] text-slate-400 px-1 pt-0.5 border-t border-slate-100">

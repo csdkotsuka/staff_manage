@@ -39,16 +39,12 @@ export const MapView: React.FC<MapViewProps> = ({
     // ズームコントロールを右下に配置（現場での片手操作対策）
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // 見やすいライト系タイル (CartoDB Voyager)
-    L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-      {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 19,
-      }
-    ).addTo(map);
+    // 見やすいオープンソース標準タイル (OpenStreetMap: APIキー完全不要・透かしなし)
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }).addTo(map);
 
     mapInstanceRef.current = map;
 

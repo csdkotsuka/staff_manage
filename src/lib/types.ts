@@ -87,6 +87,18 @@ export interface WeatherForecastDay {
   isRainy: boolean;
 }
 
+// 時間帯別天気予報（今日・明日）
+export interface WeatherHourlySlot {
+  time: string; // '06:00', '09:00', etc.
+  hour: number; // 0..23
+  weatherCode: number;
+  weatherText: string;
+  weatherIcon: string;
+  temp: number;
+  precipitationProb: number;
+  isRainy: boolean;
+}
+
 export interface Site {
   id: string;
   name: string;
