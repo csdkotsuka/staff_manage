@@ -3,7 +3,6 @@
 import React from 'react';
 import { Staff, UserRole } from '@/lib/types';
 import {
-  Radio,
   Siren,
   MessageSquare,
   UserCheck,
@@ -126,25 +125,6 @@ export const Header: React.FC<HeaderProps> = ({
               <Calendar className="w-3.5 h-3.5 text-blue-600" />
               <span>現場工程カレンダー</span>
             </button>
-          </div>
-
-          {/* 接続バッジ */}
-          <div className="hidden sm:flex items-center gap-1.5 text-xs">
-            <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                isLiveConnected
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-rose-50 text-rose-700 border border-rose-200'
-              }`}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  isLiveConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
-                }`}
-              />
-              <Radio className="w-3 h-3" />
-              {isMockMode ? 'デモ稼働中' : 'Firebase Live'}
-            </span>
           </div>
         </div>
 
