@@ -39,7 +39,7 @@ export const MapView: React.FC<MapViewProps> = ({
     // ズームコントロールを右下に配置（現場での片手操作対策）
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // 見やすいダーク系タイル (CartoDB Dark Matter または OpenStreetMap)
+    // 見やすいライト系タイル (CartoDB Voyager)
     L.tileLayer(
       'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
       {
@@ -71,10 +71,10 @@ export const MapView: React.FC<MapViewProps> = ({
           className: 'custom-site-icon',
           html: `
             <div class="flex items-center justify-center -translate-x-1/2 -translate-y-1/2 cursor-pointer group">
-              <div class="relative flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500 border-2 border-slate-900 text-slate-950 shadow-lg font-black text-xs">
+              <div class="relative flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500 border-2 border-white text-slate-950 shadow-md font-black text-xs ring-1 ring-slate-300">
                 🏢
               </div>
-              <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-slate-950/90 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded shadow border border-amber-500/40 pointer-events-none">
+              <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded shadow-sm border border-slate-300 pointer-events-none">
                 ${site.name.split(' ')[0]}
               </div>
             </div>
@@ -85,10 +85,13 @@ export const MapView: React.FC<MapViewProps> = ({
         const marker = L.marker([site.lat, site.lng], { icon: siteIcon }).addTo(map);
         marker.bindPopup(`
           <div class="p-1 max-w-[220px] text-slate-900 font-sans">
-            <span class="inline-block px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded mb-1">担当現場</span>
+            <span class="inline-block px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded mb-1">
+              ${site.status === 'in_progress' ? '施工中現場' : site.status === 'planning' ? '着工予定現場' : '完了現場'}
+            </span>
             <h4 class="font-bold text-sm leading-tight text-slate-900">${site.name}</h4>
             <p class="text-xs text-slate-600 mt-1">${site.address}</p>
             <p class="text-xs text-slate-700 font-semibold mt-1">工事: ${site.work_description || '確認中'}</p>
+            ${site.startDate ? `<p class="text-[11px] text-blue-700 mt-1 font-bold">工期: ${site.startDate} 〜 ${site.endDate || '未定'}</p>` : ''}
           </div>
         `);
         markersRef.current[markerKey] = marker;
@@ -110,23 +113,23 @@ export const MapView: React.FC<MapViewProps> = ({
         className: 'custom-staff-icon',
         html: `
           <div class="flex flex-col items-center -translate-x-1/2 -translate-y-1/2 cursor-pointer group">
-            <div class="relative flex items-center justify-center w-9 h-9 rounded-full text-white font-black text-xs shadow-xl border-2 ${
-              isCurrent ? 'ring-4 ring-amber-400 border-white' : 'border-slate-900'
+            <div class="relative flex items-center justify-center w-9 h-9 rounded-full text-white font-black text-xs shadow-md border-2 ${
+              isCurrent ? 'ring-4 ring-amber-400 border-white' : 'border-white ring-1 ring-slate-300'
             }" style="background-color: ${staff.avatar_color};">
               ${staff.name.slice(0, 1)}
               
               <!-- ステータスパルス -->
-              <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-slate-950" style="background-color: ${statusConfig.color};"></span>
+              <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white" style="background-color: ${statusConfig.color};"></span>
               ${
                 staff.status === 'available'
                   ? '<span class="absolute -top-1 -right-1 flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span></span>'
                   : ''
               }
             </div>
-            <div class="mt-1 whitespace-nowrap bg-slate-950/90 text-white text-[11px] font-bold px-2 py-0.5 rounded shadow-md border border-slate-700 flex items-center gap-1">
+            <div class="mt-1 whitespace-nowrap bg-white text-slate-900 text-[11px] font-bold px-2 py-0.5 rounded shadow-sm border border-slate-300 flex items-center gap-1">
               <span class="w-2 h-2 rounded-full" style="background-color: ${statusConfig.color}"></span>
               <span>${staff.name.split(' ')[0]}</span>
-              <span class="text-[9px] text-slate-400">(${statusConfig.shortLabel})</span>
+              <span class="text-[9px] text-slate-500">(${statusConfig.shortLabel})</span>
             </div>
           </div>
         `,
@@ -172,7 +175,7 @@ export const MapView: React.FC<MapViewProps> = ({
         className: 'custom-rescue-icon',
         html: `
           <div class="flex flex-col items-center -translate-x-1/2 -translate-y-1/2 animate-bounce">
-            <div class="w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center shadow-xl border-2 border-white ring-4 ring-red-500/50 font-black text-sm">
+            <div class="w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg border-2 border-white ring-4 ring-red-400 font-black text-sm">
               🚨
             </div>
             <div class="mt-1 bg-red-600 text-white font-black text-[10px] px-2 py-0.5 rounded shadow whitespace-nowrap">
@@ -206,11 +209,11 @@ export const MapView: React.FC<MapViewProps> = ({
   }, [focusCoord]);
 
   return (
-    <div className="relative w-full h-[280px] sm:h-[340px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-900">
+    <div className="relative w-full h-[280px] sm:h-[340px] rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100">
       <div ref={mapContainerRef} className="w-full h-full z-0" />
 
       {/* 地図上の凡例（現場職人向けクイックインフォ） */}
-      <div className="absolute top-3 left-3 z-[400] bg-slate-950/85 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-slate-800 text-[11px] text-slate-300 shadow-md pointer-events-none flex items-center gap-2.5">
+      <div className="absolute top-3 left-3 z-[400] bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] text-slate-700 shadow-sm pointer-events-none flex items-center gap-2.5">
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
           作業中

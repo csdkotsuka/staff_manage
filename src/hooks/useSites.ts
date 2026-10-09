@@ -14,7 +14,7 @@ import {
   setDoc,
 } from 'firebase/firestore';
 
-const STORAGE_SITES_KEY = 'craft_sites_cache_v1';
+const STORAGE_SITES_KEY = 'craft_sites_cache_v2';
 const BROADCAST_SITES_CHANNEL = 'craft_sites_sync_channel';
 
 export function useSites() {
@@ -34,6 +34,9 @@ export function useSites() {
         } catch (e) {
           console.error('Failed to parse cached sites', e);
         }
+      } else {
+        // 初期データを保存
+        localStorage.setItem(STORAGE_SITES_KEY, JSON.stringify(INITIAL_SITES));
       }
 
       // BroadcastChannel (タブ間通信)
@@ -77,6 +80,9 @@ export function useSites() {
               client_name: data.client_name,
               work_description: data.work_description,
               status: data.status || 'in_progress',
+              startDate: data.startDate,
+              endDate: data.endDate,
+              notes: data.notes,
             });
           });
 

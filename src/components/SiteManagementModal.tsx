@@ -8,11 +8,9 @@ import {
   Edit2,
   Trash2,
   MapPin,
-  Check,
   X,
   ShieldCheck,
   Save,
-  AlertTriangle,
   Calendar,
 } from 'lucide-react';
 
@@ -54,6 +52,7 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
   const [newStartDate, setNewStartDate] = useState('');
   const [newEndDate, setNewEndDate] = useState('');
   const [newNotes, setNewNotes] = useState('');
+  const [newStatus, setNewStatus] = useState<'planning' | 'in_progress' | 'completed'>('in_progress');
   const [newLat, setNewLat] = useState<number>(33.8392);
   const [newLng, setNewLng] = useState<number>(132.7656);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -125,7 +124,7 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
     try {
       await onAddSite({
         name: newName,
-        address: newAddress || '東京都内',
+        address: newAddress || '愛媛県内',
         client_name: newClient || '元請建設会社様',
         work_description: newWork || '内装・設備工事',
         startDate: newStartDate,
@@ -133,7 +132,7 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
         notes: newNotes,
         lat: newLat,
         lng: newLng,
-        status: 'in_progress',
+        status: newStatus,
       });
 
       // フォームリセット
@@ -144,6 +143,7 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
       setNewStartDate('');
       setNewEndDate('');
       setNewNotes('');
+      setNewStatus('in_progress');
       setActiveTab('list');
     } catch (err) {
       console.error(err);
@@ -154,58 +154,58 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200 cursor-pointer"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-2 sm:p-4 animate-in fade-in duration-200 cursor-pointer"
       onClick={onClose}
     >
       <div
-        className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden cursor-default"
+        className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ヘッダー */}
-        <div className="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-600 flex items-center justify-center border border-amber-300">
               <Building2 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
-                稼働中現場の管理・編集
-                <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.2 rounded font-bold border border-amber-400/30 flex items-center gap-0.5">
+              <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                現場の管理・工期日程設定
+                <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold border border-amber-300 flex items-center gap-0.5">
                   <ShieldCheck className="w-3 h-3" />
                   管理者限定
                 </span>
               </h3>
-              <p className="text-[11px] text-slate-400">
-                現場の追加・工種や住所の変更、削除が全社にリアルタイム同期されます
+              <p className="text-[11px] text-slate-500">
+                現場の追加・工種・工期日程の変更、削除が全社カレンダーにリアルタイム同期されます
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800 transition"
+            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200 transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* タブ切り替え */}
-        <div className="px-5 pt-3 bg-slate-950/60 border-b border-slate-800 flex items-center gap-2">
+        <div className="px-5 pt-3 bg-white border-b border-slate-200 flex items-center gap-2">
           <button
             onClick={() => setActiveTab('list')}
             className={`pb-2 px-3 text-xs font-bold border-b-2 transition ${
               activeTab === 'list'
-                ? 'text-amber-400 border-amber-400'
-                : 'text-slate-400 border-transparent hover:text-slate-200'
+                ? 'text-amber-600 border-amber-500'
+                : 'text-slate-500 border-transparent hover:text-slate-800'
             }`}
           >
-            現場一覧（{sites.length}件）
+            登録現場一覧（{sites.length}件）
           </button>
           <button
             onClick={() => setActiveTab('add')}
             className={`pb-2 px-3 text-xs font-bold border-b-2 transition flex items-center gap-1 ${
               activeTab === 'add'
-                ? 'text-amber-400 border-amber-400'
-                : 'text-slate-400 border-transparent hover:text-slate-200'
+                ? 'text-amber-600 border-amber-500'
+                : 'text-slate-500 border-transparent hover:text-slate-800'
             }`}
           >
             <Plus className="w-3.5 h-3.5" />
@@ -225,23 +225,23 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
                   return (
                     <div
                       key={site.id}
-                      className="p-4 rounded-xl bg-slate-950 border border-amber-500/50 shadow-lg space-y-3 animate-in fade-in"
+                      className="p-4 rounded-xl bg-slate-50 border border-amber-400 shadow-sm space-y-3 animate-in fade-in"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-amber-400">
+                        <span className="text-xs font-bold text-amber-800">
                           現場情報を編集中
                         </span>
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => handleSaveEdit(site.id)}
-                            className="flex items-center gap-1 bg-amber-500 hover:bg-amber-400 text-slate-950 px-2.5 py-1 rounded-lg text-xs font-bold transition shadow"
+                            className="flex items-center gap-1 bg-amber-500 hover:bg-amber-400 text-slate-950 px-2.5 py-1 rounded-lg text-xs font-bold transition shadow-xs"
                           >
                             <Save className="w-3.5 h-3.5" />
                             保存
                           </button>
                           <button
                             onClick={() => setEditingSiteId(null)}
-                            className="p-1 text-slate-400 hover:text-slate-200"
+                            className="p-1 text-slate-500 hover:text-slate-800"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -249,72 +249,90 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
                       </div>
 
                       <div className="space-y-2 text-xs">
-                        <div>
-                          <label className="block text-[11px] text-slate-400 mb-0.5">現場名</label>
-                          <input
-                            type="text"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-100"
-                          />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[11px] text-slate-600 mb-0.5">現場名</label>
+                            <input
+                              type="text"
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] text-slate-600 mb-0.5">ステータス</label>
+                            <select
+                              value={editStatus}
+                              onChange={(e) => setEditStatus(e.target.value as any)}
+                              className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900"
+                            >
+                              <option value="in_progress">施工中</option>
+                              <option value="planning">着工予定（未来）</option>
+                              <option value="completed">完了（過去）</option>
+                            </select>
+                          </div>
                         </div>
+
                         <div>
-                          <label className="block text-[11px] text-slate-400 mb-0.5">所在地住所</label>
+                          <label className="block text-[11px] text-slate-600 mb-0.5">所在地住所</label>
                           <input
                             type="text"
                             value={editAddress}
                             onChange={(e) => setEditAddress(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-100"
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900"
                           />
                         </div>
+
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-[11px] text-slate-400 mb-0.5">元請クライアント</label>
+                            <label className="block text-[11px] text-slate-600 mb-0.5">元請クライアント</label>
                             <input
                               type="text"
                               value={editClient}
                               onChange={(e) => setEditClient(e.target.value)}
-                              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-100"
+                              className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900"
                             />
                           </div>
                           <div>
-                            <label className="block text-[11px] text-slate-400 mb-0.5">工種・作業内容</label>
+                            <label className="block text-[11px] text-slate-600 mb-0.5">工種・作業内容</label>
                             <input
                               type="text"
                               value={editWork}
                               onChange={(e) => setEditWork(e.target.value)}
-                              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-100"
+                              className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900"
                             />
                           </div>
                         </div>
+
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-[11px] text-slate-400 mb-0.5">工期開始日</label>
+                            <label className="block text-[11px] text-slate-600 mb-0.5">工期開始日</label>
                             <input
                               type="date"
                               value={editStartDate}
                               onChange={(e) => setEditStartDate(e.target.value)}
-                              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-100"
+                              className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900"
                             />
                           </div>
                           <div>
-                            <label className="block text-[11px] text-slate-400 mb-0.5">工期終了日</label>
+                            <label className="block text-[11px] text-slate-600 mb-0.5">工期終了日</label>
                             <input
                               type="date"
                               value={editEndDate}
                               onChange={(e) => setEditEndDate(e.target.value)}
-                              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-100"
+                              className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900"
                             />
                           </div>
                         </div>
+
                         <div>
-                          <label className="block text-[11px] text-slate-400 mb-0.5">現場特記事項・備考</label>
+                          <label className="block text-[11px] text-slate-600 mb-0.5">現場特記事項・備考</label>
                           <textarea
                             rows={2}
                             value={editNotes}
                             onChange={(e) => setEditNotes(e.target.value)}
                             placeholder="例: 地下搬入口から入場、ヘルメット顎紐徹底、駐車スペース等"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-100 placeholder-slate-500"
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2 text-slate-900 placeholder-slate-400"
                           />
                         </div>
                       </div>
@@ -322,35 +340,42 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
                   );
                 }
 
+                const statusLabel =
+                  site.status === 'in_progress'
+                    ? { text: '施工中', bg: 'bg-emerald-50 text-emerald-800 border-emerald-200' }
+                    : site.status === 'planning'
+                    ? { text: '着工予定', bg: 'bg-sky-50 text-sky-800 border-sky-200' }
+                    : { text: '完了', bg: 'bg-slate-100 text-slate-600 border-slate-200' };
+
                 return (
                   <div
                     key={site.id}
-                    className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition flex items-start justify-between gap-3"
+                    className="p-3.5 rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition flex items-start justify-between gap-3 shadow-xs"
                   >
                     <div className="space-y-1.5 flex-1">
                       <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-sm text-slate-200">{site.name}</h4>
-                        <span className="text-[10px] bg-emerald-950 text-emerald-400 px-1.5 py-0.2 rounded border border-emerald-800">
-                          稼働中
+                        <h4 className="font-bold text-sm text-slate-900">{site.name}</h4>
+                        <span className={`text-[10px] px-2 py-0.2 rounded border font-bold ${statusLabel.bg}`}>
+                          {statusLabel.text}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400 flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
+                      <p className="text-xs text-slate-500 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                         {site.address}
                       </p>
-                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 pt-0.5">
-                        <span className="text-amber-400/90 font-medium">工種: {site.work_description}</span>
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-600 pt-0.5">
+                        <span className="text-amber-800 font-medium">工種: {site.work_description}</span>
                         <span>元請: {site.client_name}</span>
                         {(site.startDate || site.endDate) && (
-                          <span className="flex items-center gap-1 text-sky-400 font-medium">
+                          <span className="flex items-center gap-1 text-blue-700 font-bold">
                             <Calendar className="w-3 h-3" />
-                            期間: {site.startDate || '未定'} 〜 {site.endDate || '未定'}
+                            工期: {site.startDate || '未定'} 〜 {site.endDate || '未定'}
                           </span>
                         )}
                       </div>
                       {site.notes && (
-                        <p className="text-[11px] text-slate-400 bg-slate-900/80 rounded-lg px-2.5 py-1.5 border border-slate-800 mt-1">
-                          <span className="text-amber-400/80 font-bold">備考:</span> {site.notes}
+                        <p className="text-[11px] text-slate-600 bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-200 mt-1">
+                          <span className="text-amber-700 font-bold">備考:</span> {site.notes}
                         </p>
                       )}
                     </div>
@@ -358,14 +383,14 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => handleStartEdit(site)}
-                        className="p-1.5 text-slate-400 hover:text-amber-400 rounded-lg hover:bg-slate-800 transition"
+                        className="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-slate-100 transition"
                         title="現場情報を編集"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(site)}
-                        className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition"
+                        className="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-slate-100 transition"
                         title="現場を削除"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -380,48 +405,64 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
           {/* B. 新規現場追加タブ */}
           {activeTab === 'add' && (
             <form onSubmit={handleCreateSite} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  現場名 <span className="text-rose-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="例: 六本木ヒルズ レジデンス改修現場"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    現場名 <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="例: 松山空港前 物流倉庫新設工事"
+                    className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    ステータス
+                  </label>
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value as any)}
+                    className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:border-amber-500"
+                  >
+                    <option value="in_progress">施工中</option>
+                    <option value="planning">着工予定（未来）</option>
+                    <option value="completed">完了（過去）</option>
+                  </select>
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
                   所在地住所
                 </label>
                 <input
                   type="text"
                   value={newAddress}
                   onChange={(e) => setNewAddress(e.target.value)}
-                  placeholder="例: 東京都港区六本木6-10-1"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                  placeholder="例: 愛媛県松山市南吉田町2731"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     元請建設会社 / クライアント
                   </label>
                   <input
                     type="text"
                     value={newClient}
                     onChange={(e) => setNewClient(e.target.value)}
-                    placeholder="例: 森ビル様 / 大林組様"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                    placeholder="例: 大林組 四国支店様"
+                    className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     工種・作業内容
                   </label>
                   <input
@@ -429,38 +470,38 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
                     value={newWork}
                     onChange={(e) => setNewWork(e.target.value)}
                     placeholder="例: 内装ボード貼り・空調配管工事"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     工期開始日
                   </label>
                   <input
                     type="date"
                     value={newStartDate}
                     onChange={(e) => setNewStartDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     工期終了日
                   </label>
                   <input
                     type="date"
                     value={newEndDate}
                     onChange={(e) => setNewEndDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
                   現場特記事項・備考
                 </label>
                 <textarea
@@ -468,13 +509,13 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
                   value={newNotes}
                   onChange={(e) => setNewNotes(e.target.value)}
                   placeholder="例: 車両進入は地下搬入口より。ヘルメット顎紐・親綱使用を徹底。指定詰所は3Fです。"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               {/* エリア座標の簡単選択 */}
               <div className="space-y-1.5 pt-1">
-                <label className="block text-xs font-bold text-slate-300">
+                <label className="block text-xs font-bold text-slate-700">
                   地図ピンの位置（最寄りエリア選択）
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -488,8 +529,8 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
                       }}
                       className={`p-2 rounded-lg text-xs font-bold border transition ${
                         newLat === preset.lat && newLng === preset.lng
-                          ? 'bg-amber-500/20 text-amber-300 border-amber-500'
-                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'
+                          ? 'bg-amber-50 text-amber-800 border-amber-500'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                       }`}
                     >
                       {preset.label}
@@ -501,7 +542,7 @@ export const SiteManagementModal: React.FC<SiteManagementModalProps> = ({
               <button
                 type="submit"
                 disabled={!newName.trim() || isSubmitting}
-                className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black py-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-lg active:scale-98 mt-2"
+                className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black py-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition shadow-xs active:scale-98 mt-2"
               >
                 <Plus className="w-4 h-4" />
                 <span>{isSubmitting ? '登録中...' : '新しい現場を全社に登録・反映する'}</span>

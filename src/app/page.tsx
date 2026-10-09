@@ -16,6 +16,7 @@ import { DailyReportModal } from '@/components/DailyReportModal';
 import { DailyReportListModal } from '@/components/DailyReportListModal';
 import { SiteManagementModal } from '@/components/SiteManagementModal';
 import { StaffManagementModal } from '@/components/StaffManagementModal';
+import { SiteCalendar } from '@/components/SiteCalendar';
 import { useDailyReports } from '@/hooks/useDailyReports';
 import {
   Bell,
@@ -54,8 +55,8 @@ export default function Home() {
   // 日報データのリアルタイム管理（Firestore同期）
   const { reports, deleteReport, approveReport, saveSupervisorSignature } = useDailyReports();
 
-  // 画面ビュー切り替え ('mypage' または 'main')
-  const [activeView, setActiveView] = useState<'mypage' | 'main'>('mypage');
+  // 画面ビュー切り替え ('mypage' | 'main' | 'calendar')
+  const [activeView, setActiveView] = useState<'mypage' | 'main' | 'calendar'>('mypage');
 
   // モーダル・チャット開閉状態
   const [isRescueModalOpen, setIsRescueModalOpen] = useState(false);
@@ -110,7 +111,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-400 selection:text-slate-950">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-amber-400 selection:text-slate-950">
       {/* 1. アプリヘッダー */}
       <Header
         staffs={staffs}
@@ -130,7 +131,7 @@ export default function Home() {
 
       {/* リアルタイム更新通知トースト */}
       {lastNotification && (
-        <div className="fixed top-16 right-4 z-40 bg-amber-400 text-slate-950 px-4 py-2.5 rounded-xl shadow-2xl font-black text-xs flex items-center gap-2 border border-white/40 animate-in slide-in-from-top duration-200">
+        <div className="fixed top-16 right-4 z-40 bg-amber-400 text-slate-950 px-4 py-2.5 rounded-xl shadow-lg font-black text-xs flex items-center gap-2 border border-white/80 animate-in slide-in-from-top duration-200">
           <Bell className="w-4 h-4 text-slate-950 animate-bounce" />
           <span>{lastNotification}</span>
         </div>
@@ -143,9 +144,9 @@ export default function Home() {
 
         {/* モックモードガイダンス */}
         {isMockMode && (
-          <div className="bg-slate-900/90 border border-amber-500/30 rounded-xl p-3 text-xs text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-md">
+          <div className="bg-white border border-amber-300 rounded-xl p-3 text-xs text-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-xs">
             <div className="flex items-center gap-2">
-              <Info className="w-4 h-4 text-amber-400 shrink-0" />
+              <Info className="w-4 h-4 text-amber-500 shrink-0" />
               <span>
                 <strong>デモモード動作中:</strong> 別タブや別端末で開くとリアルタイムに双方向同期します。
                 Firebase設定を投入すると完全クラウド同期（Firebase Live）に切り替わります。
@@ -169,72 +170,83 @@ export default function Home() {
           />
         )}
 
-        {/* B. 全体現場マップ & 全員ボードビュー */}
+        {/* B. 現場カレンダービュー */}
+        {activeView === 'calendar' && (
+          <div className="space-y-4 animate-in fade-in duration-200">
+            <SiteCalendar
+              sites={sites}
+              onOpenSiteManagement={() => setIsSiteModalOpen(true)}
+              onFocusOnMap={handleFocusOnMap}
+            />
+          </div>
+        )}
+
+        {/* C. 全体現場マップ & 全員ボードビュー */}
         {activeView === 'main' && (
           <div className="space-y-4 animate-in fade-in duration-200">
             {/* 現場サマリーKPI */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              <div className="bg-slate-900/80 border border-emerald-500/30 rounded-xl p-2.5 sm:p-3 flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
+              <div className="bg-white border border-emerald-200 rounded-xl p-2.5 sm:p-3 flex items-center gap-2.5 shadow-xs">
+                <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
                   <Hammer className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div>
-                  <span className="text-[10px] sm:text-xs text-slate-400 block font-medium">
+                  <span className="text-[10px] sm:text-xs text-slate-500 block font-medium">
                     施工作業中
                   </span>
-                  <span className="text-base sm:text-xl font-black text-emerald-400">
-                    {countWorking} <span className="text-xs font-normal text-slate-400">名</span>
+                  <span className="text-base sm:text-xl font-black text-emerald-600">
+                    {countWorking} <span className="text-xs font-normal text-slate-500">名</span>
                   </span>
                 </div>
               </div>
 
-              <div className="bg-slate-900/80 border border-amber-500/30 rounded-xl p-2.5 sm:p-3 flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400">
+              <div className="bg-white border border-amber-200 rounded-xl p-2.5 sm:p-3 flex items-center gap-2.5 shadow-xs">
+                <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
                   <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div>
-                  <span className="text-[10px] sm:text-xs text-slate-400 block font-medium">
+                  <span className="text-[10px] sm:text-xs text-slate-500 block font-medium">
                     現場移動中
                   </span>
-                  <span className="text-base sm:text-xl font-black text-amber-400">
-                    {countMoving} <span className="text-xs font-normal text-slate-400">名</span>
+                  <span className="text-base sm:text-xl font-black text-amber-600">
+                    {countMoving} <span className="text-xs font-normal text-slate-500">名</span>
                   </span>
                 </div>
               </div>
 
-              <div className="bg-slate-900/80 border border-purple-500/30 rounded-xl p-2.5 sm:p-3 flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-purple-500/20 text-purple-400">
+              <div className="bg-white border border-purple-200 rounded-xl p-2.5 sm:p-3 flex items-center gap-2.5 shadow-xs">
+                <div className="p-2 rounded-lg bg-purple-50 text-purple-600">
                   <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div>
-                  <span className="text-[10px] sm:text-xs text-slate-400 block font-medium">
+                  <span className="text-[10px] sm:text-xs text-slate-500 block font-medium">
                     移動可能(空き)
                   </span>
-                  <span className="text-base sm:text-xl font-black text-purple-400">
-                    {countAvailable} <span className="text-xs font-normal text-slate-400">名</span>
+                  <span className="text-base sm:text-xl font-black text-purple-600">
+                    {countAvailable} <span className="text-xs font-normal text-slate-500">名</span>
                   </span>
                 </div>
               </div>
             </div>
 
             {/* 3. リアルタイム現場マップ */}
-            <section className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-              <div className="p-3 bg-slate-950/60 border-b border-slate-800 flex items-center justify-between">
+            <section className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+              <div className="p-3 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-amber-400" />
-                  <h2 className="font-bold text-xs sm:text-sm text-slate-200">
+                  <MapPin className="w-4 h-4 text-amber-500" />
+                  <h2 className="font-bold text-xs sm:text-sm text-slate-800">
                     今日の現場 & 社員位置マップ
                   </h2>
                 </div>
-                <div className="flex items-center gap-3 text-[11px] text-slate-400 font-medium">
+                <div className="flex items-center gap-3 text-[11px] text-slate-500 font-medium">
                   <span className="flex items-center gap-1">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" /> 作業中
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> 作業中
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400" /> 移動中
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> 移動中
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="w-2.5 h-2.5 rounded-full bg-purple-400" /> 空き
+                    <span className="w-2.5 h-2.5 rounded-full bg-purple-500" /> 空き
                   </span>
                 </div>
               </div>
@@ -251,31 +263,38 @@ export default function Home() {
 
             {/* 4. 社員ステータスカード一覧（全員） */}
             <section className="space-y-3">
-              <div className="flex items-center justify-between px-1">
-                <h2 className="font-bold text-sm text-slate-200 flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                <h2 className="font-bold text-sm text-slate-900 flex items-center gap-2">
                   <span>社員ステータスボード（全{staffs.length}名）</span>
-                  <span className="text-xs font-normal text-slate-400">
+                  <span className="text-xs font-normal text-slate-500">
                     ※各カードから直接ステータス変更可能
                   </span>
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <button
-                    onClick={() => setIsReportListModalOpen(true)}
-                    className="text-xs bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold px-3 py-1.5 rounded-lg border border-amber-500/30 flex items-center gap-1.5 transition active:scale-95"
+                    onClick={() => setActiveView('calendar')}
+                    className="text-xs bg-white hover:bg-slate-50 text-blue-700 font-bold px-3 py-1.5 rounded-lg border border-blue-200 flex items-center gap-1.5 transition shadow-xs active:scale-95"
                   >
-                    <FileText className="w-3.5 h-3.5" />
+                    <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                    現場カレンダー
+                  </button>
+                  <button
+                    onClick={() => setIsReportListModalOpen(true)}
+                    className="text-xs bg-white hover:bg-slate-50 text-amber-700 font-bold px-3 py-1.5 rounded-lg border border-amber-300 flex items-center gap-1.5 transition shadow-xs active:scale-95"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-amber-600" />
                     日報一覧・PDF
                   </button>
                   <button
                     onClick={() => setIsStaffModalOpen(true)}
-                    className="text-xs bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold px-3 py-1.5 rounded-lg border border-sky-500/30 flex items-center gap-1.5 transition active:scale-95"
+                    className="text-xs bg-white hover:bg-slate-50 text-sky-700 font-bold px-3 py-1.5 rounded-lg border border-sky-300 flex items-center gap-1.5 transition shadow-xs active:scale-95"
                   >
-                    <Users className="w-3.5 h-3.5" />
+                    <Users className="w-3.5 h-3.5 text-sky-600" />
                     社員名簿・権限
                   </button>
                   <button
                     onClick={() => setActiveView('mypage')}
-                    className="text-xs text-amber-400 hover:text-amber-300 font-bold underline flex items-center gap-1"
+                    className="text-xs text-amber-600 hover:text-amber-700 font-bold underline flex items-center gap-1"
                   >
                     <User className="w-3.5 h-3.5" />
                     自分のマイページ
@@ -289,7 +308,7 @@ export default function Home() {
                     key={staff.id}
                     className={
                       staff.id === currentStaffId
-                        ? 'ring-2 ring-amber-400/80 rounded-2xl shadow-lg shadow-amber-500/10'
+                        ? 'ring-2 ring-amber-500 rounded-2xl shadow-sm'
                         : ''
                     }
                   >
@@ -304,45 +323,94 @@ export default function Home() {
               </div>
             </section>
 
-            {/* 5. 今日の現場情報一覧 */}
-            <section className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-3">
-              <h3 className="font-bold text-xs text-slate-300 flex items-center gap-1.5 uppercase tracking-wider">
-                <Building2 className="w-4 h-4 text-amber-400" />
-                本日稼働中の現場一覧（全{sites.length}箇所）
-              </h3>
+            {/* 5. 現場日程カレンダープレビュー */}
+            <section className="space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                  現場工期日程（Googleカレンダー連携）
+                </h3>
+                <button
+                  onClick={() => setIsSiteModalOpen(true)}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-bold"
+                >
+                  ＋ 現場を追加・編集
+                </button>
+              </div>
+              <SiteCalendar
+                sites={sites}
+                onOpenSiteManagement={() => setIsSiteModalOpen(true)}
+                onFocusOnMap={handleFocusOnMap}
+              />
+            </section>
+
+            {/* 6. 現場情報一覧（全件） */}
+            <section className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-3 shadow-xs">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-xs text-slate-700 flex items-center gap-1.5 uppercase tracking-wider">
+                  <Building2 className="w-4 h-4 text-amber-500" />
+                  登録現場一覧（過去・現在・未来 全{sites.length}箇所）
+                </h3>
+                <button
+                  onClick={() => setIsSiteModalOpen(true)}
+                  className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-1 rounded-lg border border-slate-300 transition"
+                >
+                  現場管理
+                </button>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {sites.map((site) => (
-                  <div
-                    key={site.id}
-                    className="bg-slate-950/60 p-3 rounded-lg border border-slate-800/80 text-xs flex flex-col justify-between space-y-2"
-                  >
-                    <div>
-                      <h4 className="font-bold text-slate-200 leading-snug">{site.name}</h4>
-                      <p className="text-slate-400 text-[11px] mt-1">{site.address}</p>
-                      <p className="text-amber-400/90 text-[11px] mt-1">工種: {site.work_description}</p>
-                      {(site.startDate || site.endDate) && (
-                        <p className="text-sky-400 text-[10px] mt-1 flex items-center gap-1 font-medium">
-                          <Calendar className="w-3 h-3" />
-                          工期: {site.startDate || '未定'} 〜 {site.endDate || '未定'}
-                        </p>
-                      )}
-                      {site.notes && (
-                        <p className="text-slate-400 text-[10px] mt-1 bg-slate-900/90 p-1.5 rounded border border-slate-800">
-                          <span className="text-amber-400/80 font-bold">備考:</span> {site.notes}
-                        </p>
-                      )}
+                {sites.map((site) => {
+                  const statusBadge =
+                    site.status === 'in_progress'
+                      ? { label: '施工中', bg: 'bg-emerald-50 text-emerald-800 border-emerald-200' }
+                      : site.status === 'planning'
+                      ? { label: '着工予定', bg: 'bg-sky-50 text-sky-800 border-sky-200' }
+                      : { label: '完了現場', bg: 'bg-slate-100 text-slate-700 border-slate-200' };
+
+                  return (
+                    <div
+                      key={site.id}
+                      className="bg-slate-50/70 p-3 rounded-xl border border-slate-200 text-xs flex flex-col justify-between space-y-2 hover:bg-slate-50 transition"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${statusBadge.bg}`}
+                          >
+                            {statusBadge.label}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-medium truncate">
+                            {site.client_name}
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-slate-900 leading-snug">{site.name}</h4>
+                        <p className="text-slate-500 text-[11px] mt-1">{site.address}</p>
+                        <p className="text-amber-800 text-[11px] mt-1 font-medium">工種: {site.work_description}</p>
+                        {(site.startDate || site.endDate) && (
+                          <p className="text-blue-700 text-[10px] mt-1 flex items-center gap-1 font-bold">
+                            <Calendar className="w-3 h-3" />
+                            工期: {site.startDate || '未定'} 〜 {site.endDate || '未定'}
+                          </p>
+                        )}
+                        {site.notes && (
+                          <p className="text-slate-500 text-[10px] mt-1 bg-white p-1.5 rounded border border-slate-200">
+                            <span className="text-amber-700 font-bold">備考:</span> {site.notes}
+                          </p>
+                        )}
+                      </div>
+                      <div className="mt-2.5 pt-2 border-t border-slate-200 flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400 font-medium">{site.client_name}</span>
+                        <button
+                          onClick={() => handleFocusOnMap(site.lat, site.lng)}
+                          className="text-[11px] text-sky-600 hover:text-sky-700 font-bold"
+                        >
+                          地図で見る
+                        </button>
+                      </div>
                     </div>
-                    <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between">
-                      <span className="text-[10px] text-slate-500 font-medium">{site.client_name}</span>
-                      <button
-                        onClick={() => handleFocusOnMap(site.lat, site.lng)}
-                        className="text-[11px] text-sky-400 hover:text-sky-300 font-bold"
-                      >
-                        地図で見る
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           </div>
@@ -414,13 +482,13 @@ export default function Home() {
       />
 
       {/* フッター */}
-      <footer className="border-t border-slate-900 bg-slate-950/80 py-4 px-4 text-center text-xs text-slate-500 space-y-2">
-        <div className="flex items-center justify-center gap-4 text-[11px] text-slate-400">
+      <footer className="border-t border-slate-200 bg-white py-4 px-4 text-center text-xs text-slate-500 space-y-2">
+        <div className="flex items-center justify-center gap-4 text-[11px] text-slate-600">
           <a
             href="/guide"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-amber-400 underline transition"
+            className="hover:text-amber-600 underline transition"
           >
             📖 取扱説明書（マニュアル）
           </a>
@@ -429,7 +497,7 @@ export default function Home() {
             href="/docs"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-sky-400 underline transition"
+            className="hover:text-sky-600 underline transition"
           >
             🛠️ 技術仕様書・アーキテクチャ
           </a>

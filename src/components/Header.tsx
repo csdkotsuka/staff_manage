@@ -10,8 +10,10 @@ import {
   RefreshCw,
   User,
   Map,
+  Calendar,
   LogIn,
   BookOpen,
+  Info,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -24,8 +26,8 @@ interface HeaderProps {
   isLiveConnected: boolean;
   isMockMode: boolean;
   onReset: () => void;
-  activeView: 'main' | 'mypage';
-  onChangeView: (view: 'main' | 'mypage') => void;
+  activeView: 'main' | 'mypage' | 'calendar';
+  onChangeView: (view: 'main' | 'mypage' | 'calendar') => void;
   isLoggedIn: boolean;
   onOpenAuthModal: () => void;
 }
@@ -48,34 +50,34 @@ export const Header: React.FC<HeaderProps> = ({
   const currentStaff = staffs.find((s) => s.id === currentStaffId) || staffs[0];
 
   return (
-    <header className="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 text-white px-3 py-2 sm:px-6">
+    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-800 px-3 py-2 sm:px-6 shadow-xs">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
         {/* 左側：ロゴ & 画面切り替えタブ & 接続バッジ */}
         <div className="flex items-center justify-between w-full md:w-auto gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center font-black text-slate-950 shadow-md shadow-amber-500/20">
+            <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center font-black text-slate-950 shadow-sm">
               建
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-black tracking-tight text-base sm:text-lg text-slate-100">
+                <span className="font-black tracking-tight text-base sm:text-lg text-slate-900">
                   現場NOW
                 </span>
-                <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
                   PWA
                 </span>
               </div>
             </div>
           </div>
 
-          {/* ビュー切り替えタブ（マイページ ⇄ 現場マップ） */}
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-xl p-1 gap-1">
+          {/* ビュー切り替えタブ（マイページ ⇄ 現場マップ ⇄ 現場カレンダー） */}
+          <div className="flex items-center bg-slate-100 border border-slate-200 rounded-xl p-1 gap-1">
             <button
               onClick={() => onChangeView('mypage')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition ${
+              className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition ${
                 activeView === 'mypage'
-                  ? 'bg-amber-500 text-slate-950 shadow'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-amber-500 text-slate-950 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <User className="w-3.5 h-3.5" />
@@ -83,14 +85,25 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
             <button
               onClick={() => onChangeView('main')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition ${
+              className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition ${
                 activeView === 'main'
-                  ? 'bg-amber-500 text-slate-950 shadow'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-amber-500 text-slate-950 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Map className="w-3.5 h-3.5" />
               <span>現場マップ</span>
+            </button>
+            <button
+              onClick={() => onChangeView('calendar')}
+              className={`flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition ${
+                activeView === 'calendar'
+                  ? 'bg-amber-500 text-slate-950 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5 text-blue-600" />
+              <span>カレンダー</span>
             </button>
           </div>
 
@@ -99,13 +112,13 @@ export const Header: React.FC<HeaderProps> = ({
             <span
               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
                 isLiveConnected
-                  ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/40'
-                  : 'bg-rose-950/80 text-rose-400 border border-rose-500/40'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-rose-50 text-rose-700 border border-rose-200'
               }`}
             >
               <span
                 className={`w-2 h-2 rounded-full ${
-                  isLiveConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'
+                  isLiveConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
                 }`}
               />
               <Radio className="w-3 h-3" />
@@ -117,17 +130,17 @@ export const Header: React.FC<HeaderProps> = ({
         {/* 右側：操作社員 & アクションボタン */}
         <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-2">
           {/* 現在操作中の社員選択（クイック切り替え） */}
-          <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 rounded-lg px-2 py-1">
-            <UserCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 shadow-xs">
+            <UserCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
             <select
               id="staff-selector"
               aria-label="操作する社員を選択"
               value={currentStaffId}
               onChange={(e) => onSelectStaff(e.target.value)}
-              className="bg-transparent text-xs font-bold text-slate-200 focus:outline-none cursor-pointer pr-1"
+              className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer pr-1"
             >
               {staffs.map((staff) => (
-                <option key={staff.id} value={staff.id} className="bg-slate-900 text-white">
+                <option key={staff.id} value={staff.id} className="bg-white text-slate-900">
                   {staff.name}
                 </option>
               ))}
@@ -138,19 +151,19 @@ export const Header: React.FC<HeaderProps> = ({
           {!isLoggedIn ? (
             <button
               onClick={onOpenAuthModal}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg text-xs font-bold transition"
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 rounded-lg text-xs font-bold transition shadow-xs"
             >
-              <LogIn className="w-3.5 h-3.5 text-amber-400" />
+              <LogIn className="w-3.5 h-3.5 text-amber-600" />
               <span className="hidden xs:inline">ログイン</span>
             </button>
           ) : (
             <div
               onClick={() => onChangeView('mypage')}
-              className="cursor-pointer flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-300 hover:border-amber-500/50 transition"
+              className="cursor-pointer flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-100 border border-slate-200 text-[11px] text-slate-700 hover:border-amber-500 transition shadow-xs"
               title="マイページを開く"
             >
               <span
-                className="w-2 h-2 rounded-full"
+                className="w-2.5 h-2.5 rounded-full ring-1 ring-slate-300"
                 style={{ backgroundColor: currentStaff.avatar_color }}
               />
               <span className="font-bold">{currentStaff.name.split(' ')[0]}</span>
@@ -163,8 +176,8 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onToggleChat}
             className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
               isChatOpen
-                ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/30'
-                : 'bg-slate-900 text-emerald-400 border-emerald-500/30 hover:bg-emerald-950/40'
+                ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                : 'bg-white text-emerald-700 border-emerald-300 hover:bg-emerald-50'
             }`}
             title="全社現場グループトーク"
           >
@@ -177,29 +190,41 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             id="btn-rescue-modal"
             onClick={onOpenRescueModal}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-red-600/30 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white rounded-lg text-xs font-bold shadow-sm active:scale-95 transition-all"
             title="急な呼び出しシミュレーション"
           >
             <Siren className="w-4 h-4 animate-bounce" />
             <span className="hidden sm:inline">急募レスキュー</span>
           </button>
 
+          {/* アプリ概要 (About) リンク */}
+          <a
+            href="/about"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold transition shadow-xs"
+            title="アプリ概要（About）を開く"
+          >
+            <Info className="w-3.5 h-3.5 text-slate-500" />
+            <span className="hidden xl:inline">概要</span>
+          </a>
+
           {/* 取扱説明書 (マニュアル) リンク */}
           <a
             href="/guide"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/40 text-amber-300 rounded-lg text-xs font-bold transition shadow-sm"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 hover:border-amber-400 text-slate-700 rounded-lg text-xs font-bold transition shadow-xs"
             title="取扱説明書（マニュアル）を開く"
           >
-            <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+            <BookOpen className="w-3.5 h-3.5 text-amber-600" />
             <span className="hidden lg:inline">説明書</span>
           </a>
 
           {/* リセット */}
           <button
             onClick={onReset}
-            className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition"
+            className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
             title="データを初期状態に戻す"
           >
             <RefreshCw className="w-3.5 h-3.5" />

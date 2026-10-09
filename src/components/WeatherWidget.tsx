@@ -12,7 +12,6 @@ import {
   CloudFog,
   Umbrella,
   CalendarDays,
-  MapPin,
   RefreshCw,
   Navigation,
   Info,
@@ -43,12 +42,12 @@ function parseWmoCode(code: number): { text: string; icon: string } {
 // アイコンコンポーネント取得
 function renderWeatherIcon(iconName: string, isRainy: boolean) {
   const className = isRainy
-    ? 'w-6 h-6 text-sky-400 animate-pulse'
+    ? 'w-6 h-6 text-blue-500 animate-pulse'
     : iconName === 'Sun'
-    ? 'w-6 h-6 text-amber-400'
+    ? 'w-6 h-6 text-amber-500'
     : iconName === 'CloudSun'
-    ? 'w-6 h-6 text-amber-300'
-    : 'w-6 h-6 text-slate-300';
+    ? 'w-6 h-6 text-amber-500'
+    : 'w-6 h-6 text-slate-400';
 
   switch (iconName) {
     case 'Sun':
@@ -95,7 +94,6 @@ export const WeatherWidget: React.FC = () => {
   const fetchWeather = async (lat: number, lng: number, locLabel?: string) => {
     setIsLoading(true);
     try {
-      // 気象庁(JMA)高解像度数値予報モデル直結のオープン気象データAPI (Open-Meteo)
       const res = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo`
       );
@@ -166,7 +164,7 @@ export const WeatherWidget: React.FC = () => {
         setCurrentCoords({ lat, lng });
         fetchWeather(lat, lng, '📍 現在地(GPS連動)');
       },
-      (err) => {
+      () => {
         setIsLoading(false);
         alert('現在地が取得できませんでした（位置情報の許可をご確認ください）');
       },
@@ -179,14 +177,14 @@ export const WeatherWidget: React.FC = () => {
   }, []);
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 shadow-lg space-y-2.5">
+    <div className="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4 shadow-xs space-y-2.5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
         <div className="flex items-center gap-2">
-          <CalendarDays className="w-4 h-4 text-amber-400" />
-          <h3 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+          <CalendarDays className="w-4 h-4 text-amber-500" />
+          <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
             現場週間天気予報
           </h3>
-          <span className="text-[10px] text-amber-300/90 font-bold bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded">
+          <span className="text-[10px] text-amber-800 font-bold bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
             {currentLocName}
           </span>
         </div>
@@ -197,7 +195,7 @@ export const WeatherWidget: React.FC = () => {
           <select
             value={selectedLocId}
             onChange={(e) => handleLocationChange(e.target.value)}
-            className="bg-slate-950 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-amber-500"
+            className="bg-slate-50 border border-slate-300 text-slate-800 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
           >
             {WEATHER_LOCATIONS.map((loc) => (
               <option key={loc.id} value={loc.id}>
@@ -211,10 +209,10 @@ export const WeatherWidget: React.FC = () => {
           <button
             onClick={handleGetGpsWeather}
             disabled={isLoading}
-            className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-sky-400 border border-sky-500/30 px-2 py-1 rounded-lg text-xs font-bold transition active:scale-95 shadow"
+            className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-sky-700 border border-slate-300 px-2 py-1 rounded-lg text-xs font-bold transition active:scale-95 shadow-xs"
             title="端末のGPS現在地の天気を取得"
           >
-            <Navigation className="w-3 h-3" />
+            <Navigation className="w-3 h-3 text-sky-600" />
             <span className="hidden sm:inline">GPS</span>
           </button>
 
@@ -222,42 +220,42 @@ export const WeatherWidget: React.FC = () => {
           <button
             onClick={() => fetchWeather(currentCoords.lat, currentCoords.lng)}
             disabled={isLoading}
-            className="text-slate-400 hover:text-slate-200 p-1 rounded hover:bg-slate-800 transition"
+            className="text-slate-500 hover:text-slate-800 p-1 rounded hover:bg-slate-100 transition"
             title="天気を再取得"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-amber-400' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-amber-500' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* 週間天気カード（横スクロール対応） */}
-      <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-slate-700">
+      <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-thin">
         {forecast.map((day, idx) => {
           const isToday = idx === 0;
           return (
             <div
               key={idx}
-              className={`flex-shrink-0 w-24 sm:w-28 p-2 rounded-lg border text-center transition flex flex-col justify-between ${
+              className={`flex-shrink-0 w-24 sm:w-28 p-2 rounded-xl border text-center transition flex flex-col justify-between ${
                 day.isRainy
-                  ? 'bg-sky-950/40 border-sky-600/40'
+                  ? 'bg-blue-50/60 border-blue-200'
                   : isToday
-                  ? 'bg-amber-950/30 border-amber-500/40 ring-1 ring-amber-500/30'
-                  : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
+                  ? 'bg-amber-50/50 border-amber-300 ring-1 ring-amber-300'
+                  : 'bg-slate-50/80 border-slate-200 hover:bg-slate-50'
               }`}
             >
               {/* 日付・曜日 */}
               <div>
                 <div className="flex items-center justify-center gap-1">
-                  <span className={`text-xs font-black ${isToday ? 'text-amber-400' : 'text-slate-200'}`}>
+                  <span className={`text-xs font-black ${isToday ? 'text-amber-800' : 'text-slate-800'}`}>
                     {day.date}
                   </span>
                   <span
                     className={`text-[10px] font-bold ${
                       day.dayOfWeek === '日'
-                        ? 'text-rose-400'
+                        ? 'text-rose-600'
                         : day.dayOfWeek === '土'
-                        ? 'text-sky-400'
-                        : 'text-slate-400'
+                        ? 'text-blue-600'
+                        : 'text-slate-500'
                     }`}
                   >
                     ({day.dayOfWeek})
@@ -267,22 +265,22 @@ export const WeatherWidget: React.FC = () => {
                 {/* 天気アイコンとテキスト */}
                 <div className="my-1.5 flex flex-col items-center justify-center">
                   {renderWeatherIcon(day.weatherIcon, day.isRainy)}
-                  <span className="text-[11px] font-medium text-slate-300 mt-0.5">
+                  <span className="text-[11px] font-bold text-slate-700 mt-0.5">
                     {day.weatherText}
                   </span>
                 </div>
               </div>
 
               {/* 降水確率 & 気温 */}
-              <div className="space-y-1 pt-1.5 border-t border-slate-800/60">
+              <div className="space-y-1 pt-1.5 border-t border-slate-200">
                 {/* 降水確率 */}
                 <div
                   className={`inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
                     day.precipitationProb >= 50
-                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                      ? 'bg-rose-100 text-rose-700 border border-rose-200'
                       : day.precipitationProb >= 30
-                      ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-                      : 'text-slate-400'
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      : 'text-slate-500'
                   }`}
                 >
                   <Umbrella className="w-2.5 h-2.5 shrink-0" />
@@ -290,10 +288,10 @@ export const WeatherWidget: React.FC = () => {
                 </div>
 
                 {/* 気温 */}
-                <div className="text-[10px] text-slate-400 flex items-center justify-center gap-1 font-mono">
-                  <span className="text-rose-400 font-bold">{day.tempMax}°</span>
-                  <span className="text-slate-600">/</span>
-                  <span className="text-sky-400">{day.tempMin}°</span>
+                <div className="text-[10px] text-slate-600 flex items-center justify-center gap-1 font-mono">
+                  <span className="text-rose-600 font-bold">{day.tempMax}°</span>
+                  <span className="text-slate-400">/</span>
+                  <span className="text-blue-600">{day.tempMin}°</span>
                 </div>
               </div>
             </div>
@@ -302,7 +300,7 @@ export const WeatherWidget: React.FC = () => {
       </div>
 
       {/* 気象庁データ出典の注記 */}
-      <div className="flex items-center justify-between text-[10px] text-slate-500 px-1 pt-0.5 border-t border-slate-800/50">
+      <div className="flex items-center justify-between text-[10px] text-slate-400 px-1 pt-0.5 border-t border-slate-100">
         <span className="flex items-center gap-1">
           <Info className="w-2.5 h-2.5 text-slate-400" />
           気象庁(JMA)高解像度数値予報直結 Open-Meteo API自動取得

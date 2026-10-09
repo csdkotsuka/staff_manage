@@ -1,6 +1,50 @@
 import { Staff, Site } from './types';
 
+export const GOOGLE_CALENDAR_ID = 'c_8e848282a7a71d70787fa356d37c0add3badef159cea29d78e16dae1a09c2efc@group.calendar.google.com';
+
 export const INITIAL_SITES: Site[] = [
+  // ── 【過去の現場（完了）】 ──────────────────────────
+  {
+    id: 'site-past-1',
+    name: '松山市大街道 商店街アーケードLED照明更新工事',
+    address: '愛媛県松山市大街道2-3-1',
+    lat: 33.8405,
+    lng: 132.7715,
+    client_name: '伊予鉄グループ様',
+    work_description: 'アーケード全灯LED化・配線改修・高所作業車施工',
+    status: 'completed',
+    startDate: '2026-06-01',
+    endDate: '2026-07-31',
+    notes: '夜間通行規制下での高所作業完了。完工検査および引き渡し済。',
+  },
+  {
+    id: 'site-past-2',
+    name: '東温市総合運動公園 屋外照明塔修繕工事',
+    address: '愛媛県東温市見奈良1110',
+    lat: 33.7932,
+    lng: 132.8875,
+    client_name: '東温市役所 都市整備課様',
+    work_description: 'グラウンド照明塔安定器交換・避雷針点検',
+    status: 'completed',
+    startDate: '2026-07-15',
+    endDate: '2026-08-31',
+    notes: '台風シーズン前の安全点検完了。竣工書類受領確認済。',
+  },
+  {
+    id: 'site-past-3',
+    name: '伊予市郡中 港湾流通倉庫耐震補強工事',
+    address: '愛媛県伊予市灘町1-1',
+    lat: 33.7542,
+    lng: 132.7020,
+    client_name: '四国物流サービス様',
+    work_description: '鉄骨ブレース増設・躯体補強・配管移設',
+    status: 'completed',
+    startDate: '2026-05-10',
+    endDate: '2026-09-15',
+    notes: '荷役オペレーションを継続しながら無事故にて工期内完工。',
+  },
+
+  // ── 【現在進行形の現場（施工中）】 ──────────────────
   {
     id: 'site-1',
     name: '松山市駅前 再開発ビル内装現場',
@@ -24,7 +68,7 @@ export const INITIAL_SITES: Site[] = [
     work_description: '受変電設備更新・LED幹線配管工事',
     status: 'in_progress',
     startDate: '2026-08-20',
-    endDate: '2026-10-15',
+    endDate: '2026-10-31',
     notes: '営業中テナントあり。粉塵対策養生徹底。停電・騒音作業は夜間21:00以降のみ実施可。',
   },
   {
@@ -37,8 +81,62 @@ export const INITIAL_SITES: Site[] = [
     work_description: 'プラント配管溶接・高圧分電盤点検',
     status: 'in_progress',
     startDate: '2026-09-10',
-    endDate: '2026-10-31',
+    endDate: '2026-11-15',
     notes: '入門時に構内安全パスおよび資格証の提示必須。防塵マスクおよび耐油安全靴着用厳守。',
+  },
+  {
+    id: 'site-curr-4',
+    name: '西条バイパス ロードサイド店舗電気設備新設現場',
+    address: '愛媛県西条市新居浜境1-2',
+    lat: 33.9210,
+    lng: 133.1750,
+    client_name: '大和ハウス工業 四国支社様',
+    work_description: '店舗外灯配線・キュービクル設置・動力盤配管',
+    status: 'in_progress',
+    startDate: '2026-10-01',
+    endDate: '2026-12-15',
+    notes: '国道バイパス沿い搬入のため誘導員常駐。11月中間配線立会予定。',
+  },
+
+  // ── 【未来の現場（計画中・着工予定）】 ──────────────
+  {
+    id: 'site-future-1',
+    name: '松山空港前 物流ハブセンター空調増設工事',
+    address: '愛媛県松山市南吉田町2731',
+    lat: 33.8290,
+    lng: 132.7045,
+    client_name: '西濃運輸 四国本部様',
+    work_description: '大型パッケージエアコン新設・冷媒配管・電源引込',
+    status: 'planning',
+    startDate: '2026-11-15',
+    endDate: '2027-01-31',
+    notes: '空港制限区域隣接のため火気使用申請・入場ID申請を事前提出済み。',
+  },
+  {
+    id: 'site-future-2',
+    name: '四国中央市 製紙プラント高圧受変電所更新工事',
+    address: '愛媛県四国中央市三島宮川4-1',
+    lat: 33.9790,
+    lng: 133.5450,
+    client_name: '大王製紙様',
+    work_description: '特高トランス交換・遮断器更新・年次法定点検連動',
+    status: 'planning',
+    startDate: '2026-12-01',
+    endDate: '2027-02-28',
+    notes: '年末年始定修期間中の計画停電に合わせた集中集中工事。安全管理責任者常駐必須。',
+  },
+  {
+    id: 'site-future-3',
+    name: '八幡浜みなっと 周辺地域交流施設新築工事',
+    address: '愛媛県八幡浜市沖新田1581',
+    lat: 33.4580,
+    lng: 132.4200,
+    client_name: '南海放送開発様',
+    work_description: '木造大規模建築内装仕上げ・意匠間接照明配線',
+    status: 'planning',
+    startDate: '2027-01-15',
+    endDate: '2027-04-30',
+    notes: '2027年春オープン目標。南予エリア応援要員手配予定。',
   },
 ];
 
