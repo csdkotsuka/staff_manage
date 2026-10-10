@@ -100,7 +100,8 @@ export const WeatherWidget: React.FC = () => {
   const [forecast, setForecast] = useState<WeatherForecastDay[]>(FALLBACK_FORECAST);
   const [todayHourly, setTodayHourly] = useState<WeatherHourlySlot[]>(createFallbackHourly(false));
   const [tomorrowHourly, setTomorrowHourly] = useState<WeatherHourlySlot[]>(createFallbackHourly(true));
-  const [viewMode, setViewMode] = useState<'weekly' | 'today' | 'tomorrow'>('weekly');
+  const [activeDay, setActiveDay] = useState<'today' | 'tomorrow'>('today');
+  const [currentHour, setCurrentHour] = useState<number>(new Date().getHours());
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [lastFetched, setLastFetched] = useState<string>('たった今');
   const [selectedLocId, setSelectedLocId] = useState<string>('matsuyama');
@@ -151,8 +152,10 @@ export const WeatherWidget: React.FC = () => {
           const slots: WeatherHourlySlot[] = [];
           for (let i = startIndex; i < startIndex + count && i < data.hourly.time.length; i++) {
             const timeStr = data.hourly.time[i]; // "2026-10-10T06:00"
-            const dateObj = new Date(timeStr);
-            const hour = dateObj.getHours();
+            // 文字列から直接時間を取り出す（ブラウザのタイムゾーン依存によるズレを完全防止）
+            const parts = timeStr.split('T');
+            const hourPart = parts[1] ? parts[1].split(':')[0] : '00';
+            const hour = parseInt(hourPart, 10);
             const code = data.hourly.weather_code[i] ?? 0;
             const { text, icon } = parseWmoCode(code);
             const prob = data.hourly.precipitation_probability[i] ?? 0;
@@ -229,14 +232,15 @@ export const WeatherWidget: React.FC = () => {
   }, []);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4 shadow-xs space-y-2.5">
+    <div className="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4 shadow-xs space-y-3.5">
+      {/* 1. ヘッダー：現場名、GPS、再取得 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <CalendarDays className="w-4 h-4 text-amber-500" />
-          <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-            現場週間天気予報
+          <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+            現場天気予報
           </h3>
-          <span className="text-[10px] text-amber-800 font-bold bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+          <span className="text-[11px] text-amber-900 font-bold bg-amber-100/80 border border-amber-300 px-2.5 py-0.5 rounded-full">
             {currentLocName}
           </span>
         </div>
@@ -247,7 +251,7 @@ export const WeatherWidget: React.FC = () => {
           <select
             value={selectedLocId}
             onChange={(e) => handleLocationChange(e.target.value)}
-            className="bg-slate-50 border border-slate-300 text-slate-800 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+            className="bg-slate-50 border border-slate-300 text-slate-800 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer font-bold"
           >
             {WEATHER_LOCATIONS.map((loc) => (
               <option key={loc.id} value={loc.id}>
@@ -259,6 +263,7 @@ export const WeatherWidget: React.FC = () => {
 
           {/* GPSボタン */}
           <button
+            type="button"
             onClick={handleGetGpsWeather}
             disabled={isLoading}
             className="flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-sky-700 border border-slate-300 px-2 py-1 rounded-lg text-xs font-bold transition active:scale-95 shadow-xs"
@@ -270,9 +275,10 @@ export const WeatherWidget: React.FC = () => {
 
           {/* リロードボタン */}
           <button
+            type="button"
             onClick={() => fetchWeather(currentCoords.lat, currentCoords.lng)}
             disabled={isLoading}
-            className="text-slate-500 hover:text-slate-800 p-1 rounded hover:bg-slate-100 transition"
+            className="text-slate-500 hover:text-slate-800 p-1.5 rounded-lg hover:bg-slate-100 transition"
             title="天気を再取得"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-amber-500' : ''}`} />
@@ -280,69 +286,169 @@ export const WeatherWidget: React.FC = () => {
         </div>
       </div>
 
-      {/* 表示切替タブ（週間予報 / 今日の時間別 / 明日の時間別） */}
-      <div className="flex items-center gap-1.5 border-b border-slate-200 pb-2 px-1">
-        <button
-          type="button"
-          onClick={() => setViewMode('weekly')}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition ${
-            viewMode === 'weekly'
-              ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <CalendarDays className="w-3.5 h-3.5" />
-          週間予報 (7日)
-        </button>
-        <button
-          type="button"
-          onClick={() => setViewMode('today')}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition ${
-            viewMode === 'today'
-              ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <Clock className="w-3.5 h-3.5" />
-          今日 (時間帯別)
-        </button>
-        <button
-          type="button"
-          onClick={() => setViewMode('tomorrow')}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition ${
-            viewMode === 'tomorrow'
-              ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-        >
-          <Clock className="w-3.5 h-3.5" />
-          明日 (時間帯別)
-        </button>
+      {/* 2. 【最重要】今日・明日の時間帯別予報（常にトップに表示） */}
+      <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-2.5 sm:p-3 space-y-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 px-0.5">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-amber-600" />
+            <span className="text-xs font-black text-slate-900">
+              時間帯別天気予報（1時間毎）
+            </span>
+          </div>
+
+          {/* 「今日」と「明日」の切り替えピルボタン */}
+          <div className="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setActiveDay('today')}
+              className={`flex items-center gap-1 px-3 py-1 rounded-md text-xs font-black transition ${
+                activeDay === 'today'
+                  ? 'bg-amber-500 text-slate-950 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <span>☀️ 今日</span>
+              {forecast[0] && (
+                <span className="text-[10px] opacity-80">
+                  ({forecast[0].weatherText} {forecast[0].tempMax}°/{forecast[0].tempMin}°)
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveDay('tomorrow')}
+              className={`flex items-center gap-1 px-3 py-1 rounded-md text-xs font-black transition ${
+                activeDay === 'tomorrow'
+                  ? 'bg-amber-500 text-slate-950 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <span>🌤️ 明日</span>
+              {forecast[1] && (
+                <span className="text-[10px] opacity-80">
+                  ({forecast[1].weatherText} {forecast[1].tempMax}°/{forecast[1].tempMin}°)
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* 時間帯別カード列（横スクロール） */}
+        <div className="relative">
+          <div className="flex items-stretch gap-1.5 overflow-x-auto pb-1.5 pt-0.5 scrollbar-thin">
+            {(activeDay === 'today' ? todayHourly : tomorrowHourly).map((slot, idx) => {
+              const isWorkHour = slot.hour >= 8 && slot.hour <= 17;
+              const isNow = activeDay === 'today' && slot.hour === currentHour;
+
+              return (
+                <div
+                  key={idx}
+                  className={`flex-shrink-0 w-20 sm:w-22 p-2 rounded-xl border text-center flex flex-col justify-between transition ${
+                    isNow
+                      ? 'bg-amber-100/90 border-amber-400 ring-2 ring-amber-400 shadow-xs'
+                      : slot.isRainy
+                      ? 'bg-blue-50 border-blue-200'
+                      : isWorkHour
+                      ? 'bg-white border-amber-200/80 shadow-xs'
+                      : 'bg-white/70 border-slate-200'
+                  }`}
+                >
+                  {/* 時刻 ＆ バッジ */}
+                  <div>
+                    <div className="flex items-center justify-center gap-1">
+                      <span className={`text-xs font-mono font-black ${isNow ? 'text-amber-900' : 'text-slate-800'}`}>
+                        {slot.time}
+                      </span>
+                    </div>
+                    {isNow ? (
+                      <span className="inline-block text-[9px] font-black text-amber-950 bg-amber-300 px-1 rounded">
+                        現在
+                      </span>
+                    ) : isWorkHour ? (
+                      <span className="inline-block text-[9px] font-bold text-amber-800 bg-amber-100 px-1 rounded">
+                        作業帯
+                      </span>
+                    ) : (
+                      <span className="inline-block text-[9px] text-slate-400">
+                        時間外
+                      </span>
+                    )}
+
+                    {/* アイコン & 天気名 */}
+                    <div className="my-1.5 flex flex-col items-center justify-center">
+                      {renderWeatherIcon(slot.weatherIcon, slot.isRainy, 'w-5 h-5')}
+                      <span className="text-[10px] font-bold text-slate-700 mt-0.5 line-clamp-1">
+                        {slot.weatherText}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 降水確率 & 気温 */}
+                  <div className="space-y-1 pt-1 border-t border-slate-100">
+                    <div
+                      className={`inline-flex items-center justify-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-bold ${
+                        slot.precipitationProb >= 50
+                          ? 'bg-rose-100 text-rose-700'
+                          : slot.precipitationProb >= 30
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-slate-500'
+                      }`}
+                    >
+                      <Umbrella className="w-2.5 h-2.5 shrink-0" />
+                      <span>{slot.precipitationProb}%</span>
+                    </div>
+
+                    <div className="text-[11px] font-black text-slate-900 font-mono">
+                      {slot.temp}°C
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="text-[10px] text-slate-400 text-right pr-1 pt-0.5">
+            ← 横スクロールで全24時間の予報を確認できます →
+          </div>
+        </div>
       </div>
 
-      {/* 1. 週間天気カード（横スクロール対応） */}
-      {viewMode === 'weekly' && (
+      {/* 3. 週間天気予報（7日間） */}
+      <div className="space-y-1.5 px-0.5">
+        <div className="flex items-center justify-between text-xs font-black text-slate-800">
+          <span className="flex items-center gap-1.5">
+            <CalendarDays className="w-3.5 h-3.5 text-amber-500" />
+            週間天気予報（7日間）
+          </span>
+          <span className="text-[10px] text-slate-400 font-normal">
+            「今日」「明日」をクリックすると上の時間帯別予報が切り替わります
+          </span>
+        </div>
+
         <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-thin">
           {forecast.map((day, idx) => {
             const isToday = idx === 0;
             const isTomorrow = idx === 1;
+            const isSelected = (isToday && activeDay === 'today') || (isTomorrow && activeDay === 'tomorrow');
+
             return (
               <div
                 key={idx}
                 onClick={() => {
-                  if (isToday) setViewMode('today');
-                  if (isTomorrow) setViewMode('tomorrow');
+                  if (isToday) setActiveDay('today');
+                  if (isTomorrow) setActiveDay('tomorrow');
                 }}
                 className={`flex-shrink-0 w-24 sm:w-28 p-2 rounded-xl border text-center transition flex flex-col justify-between ${
-                  isToday || isTomorrow ? 'cursor-pointer hover:shadow-sm' : ''
+                  isToday || isTomorrow ? 'cursor-pointer hover:shadow-xs' : ''
                 } ${
-                  day.isRainy
+                  isSelected
+                    ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-400 shadow-xs'
+                    : day.isRainy
                     ? 'bg-blue-50/60 border-blue-200'
                     : isToday
-                    ? 'bg-amber-50/50 border-amber-300 ring-1 ring-amber-300'
+                    ? 'bg-amber-50/40 border-amber-300'
                     : 'bg-slate-50/80 border-slate-200 hover:bg-slate-50'
                 }`}
-                title={isToday ? 'クリックで今日の時間帯別を表示' : isTomorrow ? 'クリックで明日の時間帯別を表示' : undefined}
+                title={isToday || isTomorrow ? 'クリックで上の時間帯別予報を切り替え' : undefined}
               >
                 {/* 日付・曜日 */}
                 <div>
@@ -374,7 +480,6 @@ export const WeatherWidget: React.FC = () => {
 
                 {/* 降水確率 & 気温 */}
                 <div className="space-y-1 pt-1.5 border-t border-slate-200">
-                  {/* 降水確率 */}
                   <div
                     className={`inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
                       day.precipitationProb >= 50
@@ -388,7 +493,6 @@ export const WeatherWidget: React.FC = () => {
                     <span>{day.precipitationProb}%</span>
                   </div>
 
-                  {/* 気温 */}
                   <div className="text-[10px] text-slate-600 flex items-center justify-center gap-1 font-mono">
                     <span className="text-rose-600 font-bold">{day.tempMax}°</span>
                     <span className="text-slate-400">/</span>
@@ -397,7 +501,7 @@ export const WeatherWidget: React.FC = () => {
 
                   {(isToday || isTomorrow) && (
                     <div className="text-[9px] text-amber-700 font-bold mt-0.5">
-                      時間別を見る →
+                      {isSelected ? '● 選択中' : '詳細を見る →'}
                     </div>
                   )}
                 </div>
@@ -405,86 +509,9 @@ export const WeatherWidget: React.FC = () => {
             );
           })}
         </div>
-      )}
+      </div>
 
-      {/* 2. 時間帯別予報（今日 または 明日） */}
-      {(viewMode === 'today' || viewMode === 'tomorrow') && (
-        <div>
-          <div className="flex items-center justify-between text-xs text-slate-600 font-bold px-1 mb-2">
-            <span>
-              {viewMode === 'today' ? '📅 今日の時間帯別予報（1時間毎）' : '📅 明日の時間帯別予報（1時間毎）'}
-            </span>
-            <span className="text-[11px] text-slate-400 font-normal">
-              横スクロールで確認できます →
-            </span>
-          </div>
-
-          <div className="flex items-stretch gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
-            {(viewMode === 'today' ? todayHourly : tomorrowHourly).map((slot, idx) => {
-              // 作業時間帯（08:00 〜 17:00）を強調表示
-              const isWorkHour = slot.hour >= 8 && slot.hour <= 17;
-              return (
-                <div
-                  key={idx}
-                  className={`flex-shrink-0 w-20 sm:w-22 p-2 rounded-xl border text-center flex flex-col justify-between transition ${
-                    slot.isRainy
-                      ? 'bg-blue-50/70 border-blue-200'
-                      : isWorkHour
-                      ? 'bg-amber-50/30 border-amber-300/80 shadow-xs'
-                      : 'bg-slate-50/80 border-slate-200'
-                  }`}
-                >
-                  {/* 時刻 */}
-                  <div>
-                    <div className="flex items-center justify-center gap-1">
-                      <span className={`text-xs font-black font-mono ${isWorkHour ? 'text-amber-800' : 'text-slate-800'}`}>
-                        {slot.time}
-                      </span>
-                    </div>
-                    {isWorkHour && (
-                      <span className="text-[9px] font-bold text-amber-700 bg-amber-100/70 px-1 rounded">
-                        作業帯
-                      </span>
-                    )}
-
-                    {/* アイコン & 天気 */}
-                    <div className="my-1.5 flex flex-col items-center justify-center">
-                      {renderWeatherIcon(slot.weatherIcon, slot.isRainy, 'w-5 h-5')}
-                      <span className="text-[10px] font-bold text-slate-700 mt-0.5 line-clamp-1">
-                        {slot.weatherText}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 降水確率 & 気温 */}
-                  <div className="space-y-1 pt-1 border-t border-slate-200">
-                    {/* 降水確率 */}
-                    <div
-                      className={`inline-flex items-center justify-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-bold ${
-                        slot.precipitationProb >= 50
-                          ? 'bg-rose-100 text-rose-700'
-                          : slot.precipitationProb >= 30
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'text-slate-500'
-                      }`}
-                    >
-                      <Umbrella className="w-2.5 h-2.5 shrink-0" />
-                      <span>{slot.precipitationProb}%</span>
-                    </div>
-
-                    {/* 気温 */}
-                    <div className="text-[11px] font-black text-slate-800 font-mono">
-                      {slot.temp}°C
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* 気象庁データ出典の注記 */}
+      {/* 4. 出典注記 */}
       <div className="flex items-center justify-between text-[10px] text-slate-400 px-1 pt-0.5 border-t border-slate-100">
         <span className="flex items-center gap-1">
           <Info className="w-2.5 h-2.5 text-slate-400" />
