@@ -16,6 +16,8 @@ import {
   RefreshCw,
   Navigation,
   Info,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 // 愛媛県内および現場プリセット
@@ -101,6 +103,7 @@ export const WeatherWidget: React.FC = () => {
   const [todayHourly, setTodayHourly] = useState<WeatherHourlySlot[]>(createFallbackHourly(false));
   const [tomorrowHourly, setTomorrowHourly] = useState<WeatherHourlySlot[]>(createFallbackHourly(true));
   const [activeDay, setActiveDay] = useState<'today' | 'tomorrow'>('today');
+  const [showWeekly, setShowWeekly] = useState<boolean>(false);
   const [currentHour, setCurrentHour] = useState<number>(new Date().getHours());
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [lastFetched, setLastFetched] = useState<string>('たった今');
@@ -410,106 +413,129 @@ export const WeatherWidget: React.FC = () => {
             ← 横スクロールで全24時間の予報を確認できます →
           </div>
         </div>
+
+        {/* 週間予報の開閉トグルボタン */}
+        <div className="flex items-center justify-center pt-1 border-t border-slate-200/60">
+          <button
+            type="button"
+            onClick={() => setShowWeekly(!showWeekly)}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs ${
+              showWeekly
+                ? 'bg-amber-500/10 border-amber-300 text-amber-900 font-black'
+                : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-700 hover:text-slate-900'
+            }`}
+          >
+            <CalendarDays className="w-3.5 h-3.5 text-amber-600" />
+            <span>{showWeekly ? '週間予報（7日間）を折りたたむ' : '📅 週間天気予報（7日間）を見る'}</span>
+            {showWeekly ? (
+              <ChevronUp className="w-3.5 h-3.5 text-amber-700" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* 3. 週間天気予報（7日間） */}
-      <div className="space-y-1.5 px-0.5">
-        <div className="flex items-center justify-between text-xs font-black text-slate-800">
-          <span className="flex items-center gap-1.5">
-            <CalendarDays className="w-3.5 h-3.5 text-amber-500" />
-            週間天気予報（7日間）
-          </span>
-          <span className="text-[10px] text-slate-400 font-normal">
-            「今日」「明日」をクリックすると上の時間帯別予報が切り替わります
-          </span>
-        </div>
+      {/* 3. 週間天気予報（クリック時のみ展開） */}
+      {showWeekly && (
+        <div className="space-y-1.5 px-0.5 pt-1 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between text-xs font-black text-slate-800">
+            <span className="flex items-center gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5 text-amber-500" />
+              週間天気予報（7日間）
+            </span>
+            <span className="text-[10px] text-slate-400 font-normal">
+              「今日」「明日」をクリックすると上の時間帯別予報が切り替わります
+            </span>
+          </div>
 
-        <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-thin">
-          {forecast.map((day, idx) => {
-            const isToday = idx === 0;
-            const isTomorrow = idx === 1;
-            const isSelected = (isToday && activeDay === 'today') || (isTomorrow && activeDay === 'tomorrow');
+          <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-thin">
+            {forecast.map((day, idx) => {
+              const isToday = idx === 0;
+              const isTomorrow = idx === 1;
+              const isSelected = (isToday && activeDay === 'today') || (isTomorrow && activeDay === 'tomorrow');
 
-            return (
-              <div
-                key={idx}
-                onClick={() => {
-                  if (isToday) setActiveDay('today');
-                  if (isTomorrow) setActiveDay('tomorrow');
-                }}
-                className={`flex-shrink-0 w-24 sm:w-28 p-2 rounded-xl border text-center transition flex flex-col justify-between ${
-                  isToday || isTomorrow ? 'cursor-pointer hover:shadow-xs' : ''
-                } ${
-                  isSelected
-                    ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-400 shadow-xs'
-                    : day.isRainy
-                    ? 'bg-blue-50/60 border-blue-200'
-                    : isToday
-                    ? 'bg-amber-50/40 border-amber-300'
-                    : 'bg-slate-50/80 border-slate-200 hover:bg-slate-50'
-                }`}
-                title={isToday || isTomorrow ? 'クリックで上の時間帯別予報を切り替え' : undefined}
-              >
-                {/* 日付・曜日 */}
-                <div>
-                  <div className="flex items-center justify-center gap-1">
-                    <span className={`text-xs font-black ${isToday ? 'text-amber-800' : 'text-slate-800'}`}>
-                      {day.date}
-                    </span>
-                    <span
-                      className={`text-[10px] font-bold ${
-                        day.dayOfWeek === '日'
-                          ? 'text-rose-600'
-                          : day.dayOfWeek === '土'
-                          ? 'text-blue-600'
+              return (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    if (isToday) setActiveDay('today');
+                    if (isTomorrow) setActiveDay('tomorrow');
+                  }}
+                  className={`flex-shrink-0 w-24 sm:w-28 p-2 rounded-xl border text-center transition flex flex-col justify-between ${
+                    isToday || isTomorrow ? 'cursor-pointer hover:shadow-xs' : ''
+                  } ${
+                    isSelected
+                      ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-400 shadow-xs'
+                      : day.isRainy
+                      ? 'bg-blue-50/60 border-blue-200'
+                      : isToday
+                      ? 'bg-amber-50/40 border-amber-300'
+                      : 'bg-slate-50/80 border-slate-200 hover:bg-slate-50'
+                  }`}
+                  title={isToday || isTomorrow ? 'クリックで上の時間帯別予報を切り替え' : undefined}
+                >
+                  {/* 日付・曜日 */}
+                  <div>
+                    <div className="flex items-center justify-center gap-1">
+                      <span className={`text-xs font-black ${isToday ? 'text-amber-800' : 'text-slate-800'}`}>
+                        {day.date}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold ${
+                          day.dayOfWeek === '日'
+                            ? 'text-rose-600'
+                            : day.dayOfWeek === '土'
+                            ? 'text-blue-600'
+                            : 'text-slate-500'
+                        }`}
+                      >
+                        ({day.dayOfWeek})
+                      </span>
+                    </div>
+
+                    {/* 天気アイコンとテキスト */}
+                    <div className="my-1.5 flex flex-col items-center justify-center">
+                      {renderWeatherIcon(day.weatherIcon, day.isRainy)}
+                      <span className="text-[11px] font-bold text-slate-700 mt-0.5">
+                        {day.weatherText}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 降水確率 & 気温 */}
+                  <div className="space-y-1 pt-1.5 border-t border-slate-200">
+                    <div
+                      className={`inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        day.precipitationProb >= 50
+                          ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                          : day.precipitationProb >= 30
+                          ? 'bg-blue-100 text-blue-700 border border-blue-200'
                           : 'text-slate-500'
                       }`}
                     >
-                      ({day.dayOfWeek})
-                    </span>
-                  </div>
-
-                  {/* 天気アイコンとテキスト */}
-                  <div className="my-1.5 flex flex-col items-center justify-center">
-                    {renderWeatherIcon(day.weatherIcon, day.isRainy)}
-                    <span className="text-[11px] font-bold text-slate-700 mt-0.5">
-                      {day.weatherText}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 降水確率 & 気温 */}
-                <div className="space-y-1 pt-1.5 border-t border-slate-200">
-                  <div
-                    className={`inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                      day.precipitationProb >= 50
-                        ? 'bg-rose-100 text-rose-700 border border-rose-200'
-                        : day.precipitationProb >= 30
-                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                        : 'text-slate-500'
-                    }`}
-                  >
-                    <Umbrella className="w-2.5 h-2.5 shrink-0" />
-                    <span>{day.precipitationProb}%</span>
-                  </div>
-
-                  <div className="text-[10px] text-slate-600 flex items-center justify-center gap-1 font-mono">
-                    <span className="text-rose-600 font-bold">{day.tempMax}°</span>
-                    <span className="text-slate-400">/</span>
-                    <span className="text-blue-600">{day.tempMin}°</span>
-                  </div>
-
-                  {(isToday || isTomorrow) && (
-                    <div className="text-[9px] text-amber-700 font-bold mt-0.5">
-                      {isSelected ? '● 選択中' : '詳細を見る →'}
+                      <Umbrella className="w-2.5 h-2.5 shrink-0" />
+                      <span>{day.precipitationProb}%</span>
                     </div>
-                  )}
+
+                    <div className="text-[10px] text-slate-600 flex items-center justify-center gap-1 font-mono">
+                      <span className="text-rose-600 font-bold">{day.tempMax}°</span>
+                      <span className="text-slate-400">/</span>
+                      <span className="text-blue-600">{day.tempMin}°</span>
+                    </div>
+
+                    {(isToday || isTomorrow) && (
+                      <div className="text-[9px] text-amber-700 font-bold mt-0.5">
+                        {isSelected ? '● 選択中' : '詳細を見る →'}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 4. 出典注記 */}
       <div className="flex items-center justify-between text-[10px] text-slate-400 px-1 pt-0.5 border-t border-slate-100">
